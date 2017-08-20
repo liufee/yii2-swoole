@@ -6,7 +6,7 @@
  * Created at: 2017-08-19 17:24
  */
 
-namespace feehi\console\controllers;
+namespace feehi\console;
 
 use yii;
 
