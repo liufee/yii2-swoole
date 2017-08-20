@@ -1,0 +1,22 @@
+{
+  "name": "feehi/yii2-swoole",
+  "type": "library",
+  "description": "yii2 swoole,让yii2跑在swoole上",
+  "keywords": ["yii2","swoole","yii2-swoole", "yii2 swoole"],
+  "homepage": "http://blog.feehi.com",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "liufee",
+      "email": "job@feehi.com",
+      "homepage": "http://blog.feehi.com",
+      "role": "Developer"
+    }
+  ],
+  "require:": {
+    "php": ">=5.4"
+  },
+  "suggest": {
+    "feehi/yii2-swoole": "Need extension swoole version >= 1.9;Recommend with php >= 7"
+  }
+}
