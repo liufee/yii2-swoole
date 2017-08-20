@@ -32,8 +32,8 @@ use yii;
  'controllerMap'=>[
      ...
      'swoole' => [
-            'class' => console\controllers\SwooleController::className(),
-            'rootDir' => str_replace('console/config', '', __DIR__ );//yii2项目根路径
+            'class' => feehi\console\SwooleController::className(),
+            'rootDir' => str_replace('console/config', '', __DIR__ ),//yii2项目根路径
             'app' => 'frontend',//app目录地址
             'host' => '127.0.0.1',//监听地址
             'port' => 9999,//监听端口
@@ -47,8 +47,8 @@ use yii;
             ],
     ],
     'swoole-backend' => [
-            'class' => console\controllers\SwooleController::className(),
-            'rootDir' => str_replace('console/config', '', __DIR__ );//yii2项目根路径
+            'class' => feehi\console\SwooleController::className(),
+            'rootDir' => str_replace('console/config', '', __DIR__ ),//yii2项目根路径
             'app' => 'backend',
             'host' => '127.0.0.1',
             'port' => 9998,

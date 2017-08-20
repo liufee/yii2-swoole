@@ -18,5 +18,10 @@
   },
   "suggest": {
     "feehi/yii2-swoole": "Need extension swoole version >= 1.9;Recommend with php >= 7"
+  },
+  "autoload": {
+    "psr-4": {
+      "Feehi\\": "src/"
+    }
   }
 }
