@@ -205,11 +205,13 @@ class SwooleController extends \yii\console\Controller
         };
 
         $server->run();
+        $this->stdout("server is running, listening {$this->host}:{$this->port}" . PHP_EOL);
     }
 
     public function actionStop()
     {
         $this->sendSignal(SIGTERM);
+        $this->stdout("server is stopped, stop listening {$this->host}:{$this->port}" . PHP_EOL);
     }
 
     public function actioReloadTask()
@@ -230,6 +232,7 @@ class SwooleController extends \yii\console\Controller
             exit(1);
         }
         $this->actionStart();
+        $this->stdout("server restart success, listening {$this->host}:{$this->port}" . PHP_EOL);
     }
 
     public function actionReload()
