@@ -40,8 +40,34 @@ class Response extends \yii\web\Response
 
     protected function sendContent()
     {
+        if ($this->stream === null) {
+            $this->swooleResponse->end($this->content);
+            return;
+        }
 
-        $this->swooleResponse->end($this->content);
+        $html = "";
+        set_time_limit(0); // Reset time limit for big files
+        $chunkSize = 8 * 1024 * 1024; // 8MB per chunk
+
+        if (is_array($this->stream)) {
+            list ($handle, $begin, $end) = $this->stream;
+            fseek($handle, $begin);
+            while (!feof($handle) && ($pos = ftell($handle)) <= $end) {
+                if ($pos + $chunkSize > $end) {
+                    $chunkSize = $end - $pos + 1;
+                }
+                $html .= fread($handle, $chunkSize);
+                flush(); // Free up memory. Otherwise large files will trigger PHP's memory limit.
+            }
+            fclose($handle);
+        } else {
+            while (!feof($this->stream)) {
+                $html -= fread($this->stream, $chunkSize);
+                flush();
+            }
+            fclose($this->stream);
+        }
+        $this->swooleResponse->end($html);
     }
 
     private $_cookies;

@@ -194,10 +194,14 @@ class SwooleController extends \yii\console\Controller
                 'baseUrl' => '/assets'
             ];
 
-            $application = new \yii\web\Application($config);
-            yii::setAlias('@web', $web);
-            yii::$app->setAliases($aliases);
-            $application->run();
+            try {
+                $application = new \yii\web\Application($config);
+                yii::setAlias('@web', $web);
+                yii::$app->setAliases($aliases);
+                $application->run();
+            }catch (\Exception $e){
+                yii::$app->getErrorHandler()->handleException($e);
+            }
         };
 
         $server->run();

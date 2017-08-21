@@ -94,7 +94,7 @@ class Request extends \yii\web\Request
     public function getRawBody()
     {
         if ($this->_rawBody === null) {
-            $this->_rawBody = $this->swooleRequest->rawcontent();
+            $this->_rawBody = file_get_contents("php://input");
             return $this->_rawBody;
         }
 
