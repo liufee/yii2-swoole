@@ -260,9 +260,7 @@ class Request extends \yii\web\Request
     public function getHostInfo()
     {
         if ($this->_hostInfo === null) {
-            $secure = $this->getIsSecureConnection();
-            $http = $secure ? 'https' : 'http';
-            $this->_hostInfo = $http . '://' . $this->swooleRequest->header['host'];
+            $this->_hostInfo = $this->swooleRequest->header['host'];
         }
         return $this->_hostInfo;
     }
