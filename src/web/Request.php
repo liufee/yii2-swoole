@@ -22,23 +22,32 @@ class Request extends \yii\web\Request
     /* @var $swooleRequest \swoole_http_request */
     public $swooleRequest;
 
+    const CSRF_HEADER = 'X-CSRF-Token';
+
+    const CSRF_MASK_LENGTH = 8;
+
     public $enableCsrfValidation = true;
 
-    /**
-     * @var CookieCollection Collection of request cookies.
-     */
+    public $csrfParam = '_csrf';
+
+    public $csrfCookie = ['httpOnly' => true];
+
+    public $enableCsrfCookie = true;
+
+    public $enableCookieValidation = true;
+
+    public $cookieValidationKey;
+
+    public $methodParam = '_method';
+
+    public $parsers = [];
+
+
     private $_cookies;
-    /**
-     * @var HeaderCollection Collection of request headers.
-     */
+
     private $_headers;
 
 
-    /**
-     * Resolves the current request into a route and the associated parameters.
-     * @return array the first element is the route, and the second is the associated parameters.
-     * @throws NotFoundHttpException if the request cannot be resolved.
-     */
     public function resolve()
     {
         $result = Yii::$app->getUrlManager()->parseRequest($this);
@@ -72,15 +81,49 @@ class Request extends \yii\web\Request
         return $this->swooleRequest->server["request_method"];
     }
 
+    public function getIsGet()
+    {
+        return $this->getMethod() === 'GET';
+    }
+
+    public function getIsOptions()
+    {
+        return $this->getMethod() === 'OPTIONS';
+    }
+
+    public function getIsHead()
+    {
+        return $this->getMethod() === 'HEAD';
+    }
+
+    public function getIsPost()
+    {
+        return $this->getMethod() === 'POST';
+    }
+
+    public function getIsDelete()
+    {
+        return $this->getMethod() === 'DELETE';
+    }
+
+    public function getIsPut()
+    {
+        return $this->getMethod() === 'PUT';
+    }
+
+    public function getIsPatch()
+    {
+        return $this->getMethod() === 'PATCH';
+    }
+
     public function getIsAjax()
     {
         return isset($this->swooleRequest->header["x-requested-with"]) && $this->swooleRequest->header["x-requested-with"] === 'XMLHttpRequest';
     }
 
-    //待带修改
     public function getIsPjax()
     {
-        return $this->getIsAjax() && !empty($this->swooleRequest->header["x-requested-with"]);
+        return $this->getIsAjax() && !empty($this->swooleRequest->header["x-pjax"]);
     }
 
     public function getIsFlash()
@@ -99,6 +142,11 @@ class Request extends \yii\web\Request
         }
 
         return $this->_rawBody;
+    }
+
+    public function setRawBody($rawBody)
+    {
+        $this->_rawBody = $rawBody;
     }
 
     private $_bodyParams;
@@ -144,6 +192,27 @@ class Request extends \yii\web\Request
         return $this->_bodyParams;
     }
 
+    public function setBodyParams($values)
+    {
+        $this->_bodyParams = $values;
+    }
+
+    public function getBodyParam($name, $defaultValue = null)
+    {
+        $params = $this->getBodyParams();
+
+        return isset($params[$name]) ? $params[$name] : $defaultValue;
+    }
+
+    public function post($name = null, $defaultValue = null)
+    {
+        if ($name === null) {
+            return $this->getBodyParams();
+        }
+
+        return $this->getBodyParam($name, $defaultValue);
+    }
+
     private $_queryParams;
 
     public function getQueryParams()
@@ -169,16 +238,32 @@ class Request extends \yii\web\Request
         $this->_queryParams = $values;
     }
 
+    public function get($name = null, $defaultValue = null)
+    {
+        if ($name === null) {
+            return $this->getQueryParams();
+        }
+
+        return $this->getQueryParam($name, $defaultValue);
+    }
+
+    public function getQueryParam($name, $defaultValue = null)
+    {
+        $params = $this->getQueryParams();
+
+        return isset($params[$name]) ? $params[$name] : $defaultValue;
+    }
+
     private $_hostInfo;
     private $_hostName;
-
 
     public function getHostInfo()
     {
         if ($this->_hostInfo === null) {
-            $this->_hostInfo = $this->swooleRequest->header['host'];
+            $secure = $this->getIsSecureConnection();
+            $http = $secure ? 'https' : 'http';
+            $this->_hostInfo = $http . '://' . $this->swooleRequest->header['host'];
         }
-
         return $this->_hostInfo;
     }
 
@@ -187,6 +272,7 @@ class Request extends \yii\web\Request
         $this->_hostName = null;
         $this->_hostInfo = $value === null ? null : rtrim($value, '/');
     }
+
 
     public function getHostName()
     {
@@ -202,7 +288,7 @@ class Request extends \yii\web\Request
     public function getBaseUrl()
     {
         if ($this->_baseUrl === null) {
-            $this->_baseUrl = '';
+            $this->_baseUrl = rtrim(dirname($this->getScriptUrl()), '\\/');
         }
 
         return $this->_baseUrl;
@@ -218,7 +304,7 @@ class Request extends \yii\web\Request
     public function getScriptUrl()
     {
         if ($this->_scriptUrl === null) {
-            $this->scriptUrl = '/';
+            $this->_scriptUrl = '/';
         }
 
         return $this->_scriptUrl;
@@ -238,11 +324,7 @@ class Request extends \yii\web\Request
             return $this->_scriptFile;
         }
 
-        if (isset($_SERVER['SCRIPT_FILENAME'])) {
-            return $_SERVER['SCRIPT_FILENAME'];
-        }
-
-        throw new InvalidConfigException('Unable to determine the entry script file path.');
+        return yii::getAlias("@web");
     }
 
     public function setScriptFile($value)
@@ -334,9 +416,14 @@ class Request extends \yii\web\Request
         return isset($this->swooleRequest->server['query_string']) ? $this->swooleRequest->server['query_string'] : '';
     }
 
+    public function getIsSecureConnection()
+    {
+        return false;
+    }
+
     public function getServerName()
     {
-        return $this->swooleRequest->server['server_software'];
+        return $_SERVER['HOSTNAME'];
     }
 
     public function getServerPort()
@@ -346,17 +433,32 @@ class Request extends \yii\web\Request
 
     public function getReferrer()
     {
-        return $this->swooleRequest->header["referer"];
+        return isset( $this->swooleRequest->header["referer"] ) ? $this->swooleRequest->header["referer"] : null ;
     }
 
     public function getUserAgent()
     {
-        return $this->swooleRequest->header['user-agent'];
+        return isset( $this->swooleRequest->header['user-agent'] ) ? $this->swooleRequest->header['user-agent'] : null;
     }
 
     public function getUserIP()
     {
-        return $this->swooleRequest->server['remote_addr'];
+        return isset( $this->swooleRequest->server['remote_addr'] ) ? $this->swooleRequest->server['remote_addr'] : null;
+    }
+
+    public function getUserHost()
+    {
+        return isset($_SERVER['REMOTE_HOST']) ? $_SERVER['REMOTE_HOST'] : null;
+    }
+
+    public function getAuthUser()
+    {
+        return isset($_SERVER['PHP_AUTH_USER']) ? $_SERVER['PHP_AUTH_USER'] : null;
+    }
+
+    public function getAuthPassword()
+    {
+        return isset($_SERVER['PHP_AUTH_PW']) ? $_SERVER['PHP_AUTH_PW'] : null;
     }
 
     private $_port;
@@ -442,6 +544,74 @@ class Request extends \yii\web\Request
         $this->_languages = $value;
     }
 
+    public function parseAcceptHeader($header)
+    {
+        $accepts = [];
+        foreach (explode(',', $header) as $i => $part) {
+            $params = preg_split('/\s*;\s*/', trim($part), -1, PREG_SPLIT_NO_EMPTY);
+            if (empty($params)) {
+                continue;
+            }
+            $values = [
+                'q' => [$i, array_shift($params), 1],
+            ];
+            foreach ($params as $param) {
+                if (strpos($param, '=') !== false) {
+                    list ($key, $value) = explode('=', $param, 2);
+                    if ($key === 'q') {
+                        $values['q'][2] = (double) $value;
+                    } else {
+                        $values[$key] = $value;
+                    }
+                } else {
+                    $values[] = $param;
+                }
+            }
+            $accepts[] = $values;
+        }
+
+        usort($accepts, function ($a, $b) {
+            $a = $a['q']; // index, name, q
+            $b = $b['q'];
+            if ($a[2] > $b[2]) {
+                return -1;
+            }
+
+            if ($a[2] < $b[2]) {
+                return 1;
+            }
+
+            if ($a[1] === $b[1]) {
+                return $a[0] > $b[0] ? 1 : -1;
+            }
+
+            if ($a[1] === '*/*') {
+                return 1;
+            }
+
+            if ($b[1] === '*/*') {
+                return -1;
+            }
+
+            $wa = $a[1][strlen($a[1]) - 1] === '*';
+            $wb = $b[1][strlen($b[1]) - 1] === '*';
+            if ($wa xor $wb) {
+                return $wa ? 1 : -1;
+            }
+
+            return $a[0] > $b[0] ? 1 : -1;
+        });
+
+        $result = [];
+        foreach ($accepts as $accept) {
+            $name = $accept['q'][1];
+            $accept['q'] = $accept['q'][2];
+            $result[$name] = $accept;
+        }
+
+        return $result;
+    }
+
     public function getPreferredLanguage(array $languages = [])
     {
         if (empty($languages)) {
@@ -464,11 +634,7 @@ class Request extends \yii\web\Request
         return reset($languages);
     }
 
-    /**
-     * Gets the Etags.
-     *
-     * @return array The entity tags
-     */
+    //待修改
     public function getETags()
     {
         if (isset($_SERVER['HTTP_IF_NONE_MATCH'])) {

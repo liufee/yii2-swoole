@@ -8,6 +8,7 @@
 
 namespace feehi\swoole;
 
+use feehi\web\Session;
 
 class SwooleServer extends \yii\base\Object
 {
@@ -23,6 +24,7 @@ class SwooleServer extends \yii\base\Object
         self::$swooleConfig = $swooleConfig;
         $this->swoole->set($swooleConfig);
         $this->swoole->on('request', [$this, 'onRequest']);
+        $this->swoole->on('WorkerStart', [$this, 'onWorkerStart']);
         parent::__construct();
     }
 
@@ -44,10 +46,17 @@ class SwooleServer extends \yii\base\Object
         //$this->staticRequest($request, $response);
 
         //转换$_FILE超全局变量
-         $this->mountGlobalFilesVar($request, $response);
-
+         $this->mountGlobalFilesVar($request);
 
         call_user_func_array($this->runApp, [$request, $response]);
+    }
+
+    public function onWorkerStart( $serv , $worker_id) {
+        if( $worker_id == 0 ) {
+            \swoole_timer_tick(60000, function(){//一分钟清理一次session
+                (new Session())->gcSession();
+            });
+        }
     }
 
     /**
@@ -116,6 +125,20 @@ class SwooleServer extends \yii\base\Object
                 }
             }
         }
+        $_GET = isset($request->get) ? $request->get : [];
+        $_POST = isset($request->post) ?  $request->post : [];
+        $_COOKIE = isset($request->cookie) ?  $request->cookie : [];
+
+        $server = isset($request->server) ? $request->server : [];
+        $header = isset($request->header) ? $request->header : [];
+        foreach ($server as $key => $value) {
+            $_SERVER[strtoupper($key)] = $value;
+            unset($server[$key]);
+        }
+        foreach ($header as $key => $value) {
+            $_SERVER['HTTP_'.strtoupper($key)] = $value;
+        }
+        $_SERVER['SERVER_SOFTWARE'] = "swoole/" . SWOOLE_VERSION;
     }
 
 }

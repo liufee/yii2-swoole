@@ -178,20 +178,26 @@ class SwooleController extends \yii\console\Controller
             ];
             $config['aliases'] = isset($config['aliases']) ? array_merge($aliases, $config['aliases']) : $aliases;
 
-            $config['components']['request'] = [
+            $requestComponent = [
                 'class' => \feehi\web\Request::className(),
                 'swooleRequest' => $request,
-                'cookieValidationKey' => 'KaNMPF6oZegCr0bhED4JHYnhOse7UhrS',
-                'enableCsrfValidation' => true,
             ];
-            $config['components']['response'] = [
+            $config['components']['request'] = isset($config['components']['request']) ? array_merge($config['components']['request'], $requestComponent) : $requestComponent;
+
+            $responseComponent = [
                 'class' => \feehi\web\Response::className(),
                 'swooleResponse' => $response,
             ];
+            $config['components']['response'] = isset($config['components']['response']) ? array_merge($config['components']['response'], $responseComponent) : $responseComponent;
 
-            $config['components']['assetManager'] = [
+            $authManagerComponent = [
                 'class' => yii\web\AssetManager::className(),
                 'baseUrl' => '/assets'
+            ];
+            $config['components']['assetManager'] = isset( $config['components']['assetManager'] ) ? array_merge($authManagerComponent, $config['components']['assetManager']) : $authManagerComponent;
+
+            $config['components']['session'] = [
+                "class" => \feehi\web\Session::className()
             ];
 
             try {
@@ -204,8 +210,8 @@ class SwooleController extends \yii\console\Controller
             }
         };
 
-        $server->run();
         $this->stdout("server is running, listening {$this->host}:{$this->port}" . PHP_EOL);
+        $server->run();
     }
 
     public function actionStop()
