@@ -149,6 +149,12 @@ Nginx配置
  }
 ```
 
+
+调试
+-------------
+var_dump、echo都是输出到控制台，不方便调试。可以使用\feehi\console\dump()函数，输出数组、对象、字符串、布尔值到浏览器
+
+
 其他
 -------------
 以上是把swoole启动/关闭/重启命令集成到了yii2 console里面，如果你并不想使用集成到yii2 console的swoole，可以复制vendor/feehi/yii2-swoole下的backend.php和frontend.php，修改$rootDir = "/path/to/project"为真正的yii2项目根目录,然后执行php backend.php以及php frontend.php启动swoole

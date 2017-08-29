@@ -9,19 +9,23 @@
 namespace feehi\swoole;
 
 use feehi\web\Session;
+use swoole_http_server;
 
 class SwooleServer extends \yii\base\Object
 {
     public $swoole;
 
-    public static $swooleConfig;
+    public $webRoot;
+
+    public $config = ['gcSessionInterval' => 60000];
 
     public $runApp;
 
-    public function __construct($host, $port, $swooleConfig=[])
+    public function __construct($host, $port, $mode, $socketType, $swooleConfig=[], $config=[])
     {
-        $this->swoole = new \swoole_http_server($host, $port);
-        self::$swooleConfig = $swooleConfig;
+        $this->swoole = new swoole_http_server($host, $port, $mode, $socketType);
+        $this->webRoot = $swooleConfig['document_root'];
+        if( !empty($this->config) ) $this->config = array_merge($this->config, $config);
         $this->swoole->set($swooleConfig);
         $this->swoole->on('request', [$this, 'onRequest']);
         $this->swoole->on('WorkerStart', [$this, 'onWorkerStart']);
@@ -53,7 +57,7 @@ class SwooleServer extends \yii\base\Object
 
     public function onWorkerStart( $serv , $worker_id) {
         if( $worker_id == 0 ) {
-            \swoole_timer_tick(60000, function(){//一分钟清理一次session
+            swoole_timer_tick($this->config['gcSessionInterval'], function(){//一分钟清理一次session
                 (new Session())->gcSession();
             });
         }
@@ -84,19 +88,19 @@ class SwooleServer extends \yii\base\Object
         $extension = pathinfo($uri, PATHINFO_EXTENSION);
         if( !empty($extension) && in_array($extension, ['js', 'css', 'jpg', 'jpeg', 'png', 'gif', 'webp']) ){
 
-            $web = self::$swooleConfig['document_root'];
+            $web = $this->webRoot;
             rtrim($web, '/');
             $file = $web . '/' . $uri;
             if( is_file( $file )){
                 $temp = strrev($file);
                 if( strpos($uri, 'sj.') === 0 ) {
-                    $response->header('Content-Type', 'application/x-javascript');
+                    $response->header('Content-Type', 'application/x-javascript', false);
                 }else if(strpos($temp, 'ssc.') === 0){
-                    $response->header('Content-Type', 'text/css');
+                    $response->header('Content-Type', 'text/css', false);
                 }else {
-                    $response->header('Content-Type', 'application/octet-stream');
+                    $response->header('Content-Type', 'application/octet-stream', false);
                 }
-                $response->sendfile($file);
+                $response->sendfile($file, 0);
             }else{
                 $response->status(404);
                 $response->end('');

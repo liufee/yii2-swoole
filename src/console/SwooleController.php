@@ -9,109 +9,13 @@
 namespace feehi\console;
 
 use yii;
-
-/**
- * Class SwooleController
- *
- * @package feehi\console\controllers
- *
- * @description
- *
- * 支持的命令
- *
- * ./yii swoole/start 启动前台swoole
- * ./yii swoole/stop 关闭前台swoole
- * ./yii swoole/restart 重启前台swoole
- *
- *  ./yii swoole-backend/start 启动后台swoole
- * ./yii swoole-backend/stop 关闭后台swoole
- * ./yii swoole-backend/restart 重启后台swoole
- *
- *
- * 配置示例
- 'controllerMap'=>[
-     ...
-     'swoole' => [
-            'class' => feehi\console\SwooleController::className(),
-            'rootDir' => str_replace('console/config', '', __DIR__ ),//yii2项目根路径
-            'app' => 'frontend',//app目录地址
-            'host' => '127.0.0.1',//监听地址
-            'port' => 9999,//监听端口
-            'swooleConfig' => [//标准的swoole配置项都可以再此加入
-                'reactor_num' => 2,
-                'worker_num' => 4,
-                'daemonize' => false,
-                'log_file' => __DIR__ . '/../../frontend/runtime/logs/swoole.log',
-                'log_level' => 0,
-                'pid_file' => __DIR__ . '/../../frontend/runtime/server.pid',
-            ],
-    ],
-    'swoole-backend' => [
-            'class' => feehi\console\SwooleController::className(),
-            'rootDir' => str_replace('console/config', '', __DIR__ ),//yii2项目根路径
-            'app' => 'backend',
-            'host' => '127.0.0.1',
-            'port' => 9998,
-            'swooleConfig' => [
-            'reactor_num' => 2,
-            'worker_num' => 4,
-            'daemonize' => false,
-            'log_file' => __DIR__ . '/../../backend/runtime/logs/swoole.log',
-            'log_level' => 0,
-            'pid_file' => __DIR__ . '/../../backend/runtime/server.pid',
-        ],
-    ]
-    ...
- ]
- *
- * nginx 配置示列 //虽然swoole从1.9.8开始支持静态资源，但是性能很差，线上环境务必搭配nginx使用
- *
- * 前台
- *
- server {
-    set $web /www/cms-swoole/frontend/web;
-    root $web;
-    server_name swoole.cms.test.docker;
-
-    location ~* .(ico|gif|bmp|jpg|jpeg|png|swf|js|css|mp3) {
-    root  $web;
-    }
-
-    location ~ timthumb\.php$ {//若部分功能仍需要使用php-fpm则做类似配置，否则删除此段
-        fastcgi_pass   127.0.0.1:9000;
-        fastcgi_index  index.php;
-        fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
-        include        fastcgi_params;
-    }
-
-    location / {
-        proxy_http_version 1.1;
-        proxy_set_header Connection "keep-alive";
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header Host http://swoole.cms.test.docker;
-        proxy_pass http://127.0.0.1:9999;
-    }
- }
- *
- 后台
- server {
-    set $web /www/cms-swoole/backend/web;
-    root $web;
-    server_name swoole-admin.cms.test.docker;
-
-    location ~* .(ico|gif|bmp|jpg|jpeg|png|swf|js|css|mp3) {
-        root  $web;
-    }
-
-    location / {
-        proxy_http_version 1.1;
-        proxy_set_header Connection "keep-alive";
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header Host http://swoole-admin.cms.test.docker;
-        proxy_pass http://127.0.0.1:9998;
-    }
- }
- */
+use yii\helpers\ArrayHelper;
+use feehi\web\Request;
+use feehi\web\Response;
+use feehi\web\Session;
+use feehi\swoole\SwooleServer;
+use yii\web\AssetManager;
+use yii\web\Application;
 
 class SwooleController extends \yii\console\Controller
 {
@@ -120,11 +24,17 @@ class SwooleController extends \yii\console\Controller
 
     public $port = 9999;
 
+    public $mode = SWOOLE_PROCESS;
+
+    public $socketType = SWOOLE_TCP;
+
     public $rootDir = "";
 
     public $app = "frontend";
 
     public $swooleConfig = [];
+
+    public $gcSessionInterval = 60000;//启动session回收的间隔时间，单位为毫秒
 
 
 
@@ -142,7 +52,7 @@ class SwooleController extends \yii\console\Controller
         require($rootDir . '/common/config/bootstrap.php');
         require($rootDir . $this->app .  '/config/bootstrap.php');
 
-        $config = yii\helpers\ArrayHelper::merge(
+        $config = ArrayHelper::merge(
             require($rootDir . '/common/config/main.php'),
             require($rootDir . '/common/config/main-local.php'),
             require($rootDir . $this->app . '/config/main.php'),
@@ -154,24 +64,25 @@ class SwooleController extends \yii\console\Controller
             'enable_static_handler' => true,
         ], $this->swooleConfig);
 
-        $server = new \feehi\swoole\SwooleServer($this->host, $this->port, $this->swooleConfig);
+        $server = new SwooleServer($this->host, $this->port, $this->mode, $this->socketType, $this->swooleConfig, ['gcSessionInterval'=>$this->gcSessionInterval]);
+
+        function dump($var){
+            if( is_array($var) || is_object($var) ){
+                $body = print_r($var, true);
+            }else{
+                $body = $var;
+            }
+            if( isset(yii::$app->getResponse()->swooleResponse) ){
+                echo "dump function must called in request period" . PHP_EOL;
+            }
+            yii::$app->getResponse()->swooleResponse->end($body);
+        }
 
         /**
          * @param \swoole_http_request $request
          * @param \swoole_http_response $response
          */
         $server->runApp = function ($request, $response) use ($config, $web) {
-            /*$uri = $request->server['request_uri'];
-            if (strpos($uri, 'timthumb')) {
-                $image = new \feehi\components\PicFilter();
-                $image->initialize([
-                    'source_image' => $web . "/uploads/article/thumb/5998ec3c119ea_a6.jpg",
-                    'width'        => 200,
-                    'height'       => 200,
-                ]);
-                $image->resize();
-                exit;
-            }*/
             $aliases = [
                 '@web' => $web,
                 '@webroot' => $web,
@@ -179,29 +90,29 @@ class SwooleController extends \yii\console\Controller
             $config['aliases'] = isset($config['aliases']) ? array_merge($aliases, $config['aliases']) : $aliases;
 
             $requestComponent = [
-                'class' => \feehi\web\Request::className(),
+                'class' => Request::className(),
                 'swooleRequest' => $request,
             ];
             $config['components']['request'] = isset($config['components']['request']) ? array_merge($config['components']['request'], $requestComponent) : $requestComponent;
 
             $responseComponent = [
-                'class' => \feehi\web\Response::className(),
+                'class' => Response::className(),
                 'swooleResponse' => $response,
             ];
             $config['components']['response'] = isset($config['components']['response']) ? array_merge($config['components']['response'], $responseComponent) : $responseComponent;
 
             $authManagerComponent = [
-                'class' => yii\web\AssetManager::className(),
+                'class' => AssetManager::className(),
                 'baseUrl' => '/assets'
             ];
             $config['components']['assetManager'] = isset( $config['components']['assetManager'] ) ? array_merge($authManagerComponent, $config['components']['assetManager']) : $authManagerComponent;
 
             $config['components']['session'] = [
-                "class" => \feehi\web\Session::className()
+                "class" => Session::className()
             ];
 
             try {
-                $application = new \yii\web\Application($config);
+                $application = new Application($config);
                 yii::setAlias('@web', $web);
                 yii::$app->setAliases($aliases);
                 $application->run();
@@ -251,7 +162,7 @@ class SwooleController extends \yii\console\Controller
         if ($pid = $this->getPid()) {
             posix_kill($pid, $sig);
         } else {
-            $this->stdout("not running!" . PHP_EOL);
+            $this->stdout("server is not running!" . PHP_EOL);
             exit(1);
         }
     }

@@ -13,9 +13,6 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
     /* @description $savePath session存储目录，执行swoole的用户必须对目录有读和写的权限 */
     public $savePath = "/tmp/";
 
-    /* @description $lifeTime session有效时间（秒） */
-    public $lifeTime = 1400;
-
     public $flashParam = '__flash';
 
     private $_started = false;
@@ -50,14 +47,18 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         file_put_contents($this->getSessionFullName(), json_encode($_SESSION));
     }
 
+    /**
+     * swoole每隔设置的毫秒数执行此方法回收session
+     */
     public function gcSession()
     {
         $handle = opendir( $this->getSavePath() );
         while (false !== ($file = readdir($handle)))
         {
             if ($file != "." && $file != ".." && (strpos($file, $this->_prefix) === 0) && is_file($this->getSavePath() . $file)) {
+                if( strpos($file, $this->_prefix) !== 0 ) continue;
                 $lastUpdatedAt = filemtime($this->getSavePath() . $file);
-                if( time() - $lastUpdatedAt > $this->lifeTime ){
+                if( time() - $lastUpdatedAt > $this->getCookieParams()['lifetime'] ){
                     unlink($this->getSavePath() . $file);
                 }
             }
@@ -68,6 +69,15 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
     {
         if ($this->getIsActive()) {
             return;
+        }
+        if( !is_dir($this->getSavePath()) ){
+            throw new InvalidConfigException("SESSION save path {$this->savePath} is not exists");
+        }
+        if( !is_readable($this->getSavePath()) ){
+            throw new InvalidConfigException("SESSION saved path {$this->savePath} is not readable");
+        }
+        if( !is_writable($this->getSavePath()) ){
+            throw new InvalidConfigException("SESSION saved path {$this->savePath} is not writable");
         }
         $file = $this->getSessionFullName();
         if( file_exists($file) && is_file($file) ) {
@@ -85,11 +95,12 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
     }
 
     public function setCookieParams(array $config){
-        $this->_cookieParams;
+        $this->_cookieParams = $config;
     }
 
     public function destroy()
     {
+        $this->open();
         if ($this->getIsActive()) {
             $_SESSION = [];
         }
@@ -147,12 +158,6 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         if( strrpos( $this->savePath, '/') !==0 ){
             $this->savePath .= '/';
         }
-        if( !is_readable($this->savePath) ){
-            throw new InvalidConfigException("SESSION saved path {$this->savePath} is not readable");
-        }
-        if( !is_writable($this->savePath) ){
-            throw new InvalidConfigException("SESSION saved path {$this->savePath} is not writable");
-        }
         return $this->savePath;
     }
 
@@ -175,6 +180,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
 
     public function count()
     {
+        $this->open();
         return $this->getCount();
     }
 
@@ -217,6 +223,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
 
     protected function updateFlashCounters()
     {
+        $this->open();
         $counters = $this->get($this->flashParam, []);
         if (is_array($counters)) {
             foreach ($counters as $key => $count) {
@@ -233,8 +240,9 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         }
     }
 
-    public function getFlash($key, $defaultValue = null, $delete = false)
+    public function getFlash($key, $defaultValue = null, $delete = true)
     {
+        $this->open();
         $counters = $this->get($this->flashParam, []);
         if (isset($counters[$key])) {
             $value = $this->get($key, $defaultValue);
@@ -252,6 +260,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
 
     public function getAllFlashes($delete = false)
     {
+        $this->open();
         $counters = $this->get($this->flashParam, []);
         $flashes = [];
         foreach (array_keys($counters) as $key) {
@@ -273,6 +282,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
 
     public function setFlash($key, $value = true, $removeAfterAccess = true)
     {
+        $this->open();
         $counters = $this->get($this->flashParam, []);
         $counters[$key] = $removeAfterAccess ? -1 : 0;
         $_SESSION[$key] = $value;
@@ -281,6 +291,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
 
     public function addFlash($key, $value = true, $removeAfterAccess = true)
     {
+        $this->open();
         $counters = $this->get($this->flashParam, []);
         $counters[$key] = $removeAfterAccess ? -1 : 0;
         $_SESSION[$this->flashParam] = $counters;
@@ -297,6 +308,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
 
     public function removeFlash($key)
     {
+        $this->open();
         $counters = $this->get($this->flashParam, []);
         $value = isset($_SESSION[$key], $counters[$key]) ? $_SESSION[$key] : null;
         unset($counters[$key], $_SESSION[$key]);
@@ -306,6 +318,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
 
     public function removeAllFlashes()
     {
+        $this->open();
         $counters = $this->get($this->flashParam, []);
         foreach (array_keys($counters) as $key) {
             unset($_SESSION[$key]);
@@ -315,6 +328,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
 
     public function hasFlash($key)
     {
+        $this->open();
         return $this->getFlash($key) !== null;
     }
 
