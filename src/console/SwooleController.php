@@ -14,7 +14,6 @@ use feehi\web\Request;
 use feehi\web\Response;
 use feehi\web\Session;
 use feehi\swoole\SwooleServer;
-use yii\web\AssetManager;
 use yii\web\Application;
 
 class SwooleController extends \yii\console\Controller
@@ -84,7 +83,7 @@ class SwooleController extends \yii\console\Controller
          */
         $server->runApp = function ($request, $response) use ($config, $web) {
             $aliases = [
-                '@web' => $web,
+                '@web' => '',
                 '@webroot' => $web,
             ];
             $config['aliases'] = isset($config['aliases']) ? array_merge($aliases, $config['aliases']) : $aliases;
@@ -101,19 +100,12 @@ class SwooleController extends \yii\console\Controller
             ];
             $config['components']['response'] = isset($config['components']['response']) ? array_merge($config['components']['response'], $responseComponent) : $responseComponent;
 
-            $authManagerComponent = [
-                'class' => AssetManager::className(),
-                'baseUrl' => '/assets'
-            ];
-            $config['components']['assetManager'] = isset( $config['components']['assetManager'] ) ? array_merge($authManagerComponent, $config['components']['assetManager']) : $authManagerComponent;
-
             $config['components']['session'] = [
                 "class" => Session::className()
             ];
 
             try {
                 $application = new Application($config);
-                yii::setAlias('@web', $web);
                 yii::$app->setAliases($aliases);
                 $application->run();
             }catch (\Exception $e){

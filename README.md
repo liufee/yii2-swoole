@@ -1,7 +1,7 @@
 yii2 swoole
 ===============================
 
-让yii2运行在swoole上。
+让yii2运行在swoole上。如果您在使用中遇到问题或者想学习yii2结合swoole可以加qq群258780872一起讨论
 
 
 性能
@@ -13,7 +13,7 @@ yii2 swoole
 ----------------
 各个演示站点后台   **用户名:feehicms 密码123456**
   * php7.1.8 (php-fpm+nginx+yii2)
-    * 前台[http://demo.cms.qq.feehi.com/admin](http://demo.cms.qq.feehi.com/admin)
+    * 前台[http://demo.cms.qq.feehi.com/](http://demo.cms.qq.feehi.com)
     * 后台1[http://demo.cms.qq.feehi.com/admin](http://demo.cms.qq.feehi.com/admin)
   * php7.1.8 (swoole+nginx+yii2)
     * 前台[http:/swoole.demo.cms.qq.feehi.com/](http://swoole.demo.cms.qq.feehi.com)
