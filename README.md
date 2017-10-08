@@ -152,7 +152,7 @@ Nginx配置
 
 调试
 -------------
-var_dump、echo都是输出到控制台，不方便调试。可以使用\feehi\console\dump()函数，输出数组、对象、字符串、布尔值到浏览器
+var_dump、echo都是输出到控制台，不方便调试。可以使用\feehi\swoole\Util::dump()，输出数组、对象、字符串、布尔值到浏览器
 
 
 其他
