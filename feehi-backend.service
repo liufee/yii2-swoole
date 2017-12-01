@@ -1,0 +1,15 @@
+[Unit]
+Description=Feehi Backend Server
+After=network.target
+After=syslog.target
+
+[Service]
+Type=forking
+PIDFile=/path/to/yii2app/backend/runtime/server.pid
+ExecStart=/path/to/php /path/to/yii2app/yii swoole-backend/start
+ExecStop=/bin/kill $MAINPID
+ExecReload=/bin/kill -USR1 $MAINPID
+Restart=always
+
+[Install]
+WantedBy=multi-user.target graphical.target

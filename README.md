@@ -93,6 +93,30 @@ yii2 swoole
     * 启动 /path/to/php /path/to/yii swoole-backend/start
     * 关闭 /path/to/php /path/to/yii swoole-backend/stop
     * 重启 /path/to/php /path/to/yii swoole-backend/restart
+    
+使用systemd启动和开机自动启动
+---------------------------
+  #####使用systemd来管理服务
+    1. 复制feehi.service和feehi-backend.service到/etc/systemd/system目录
+    2. 分别修改feehi.service和feehi-backend.service中[Service]部分的 /path/to/yii2app为你的目录，/path/to/php为你的php命令绝对路径
+    3. 运行systemctl daemon-reload
+  
+  现在可以像管理apache一样使用service httpd start和service httpd stop以及service httpd restart来启动、关闭、重启yii2 swoole服务了
+  
+  serice feehi start和service feehi stop以及service feehi restart启动、关闭、重启前台
+  
+  serice feehi-backend start和service feehi-backend stop以及service feehi-backend restart启动、关闭、重启后台
+    
+  #####加入开机自动启动
+   方法一 
+   
+        1. 使用systemd管理服务
+        2. 运行systemctl enable feehi以及systemctl enable feehi-backend设置开机自动启动
+        
+   方法二
+   
+        在/etc/rc.local中加入/path/to/php /path/to/yii2app/yii swoole/start和/path/to/php /path/to/yii2app/yii swoole-backend/start两行
+  
 
 Nginx配置
 -------------
