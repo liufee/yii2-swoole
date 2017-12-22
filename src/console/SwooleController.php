@@ -9,12 +9,16 @@
 namespace feehi\console;
 
 use yii;
+use feehi\web\ErrorHandler;
+use yii\base\ExitException;
 use yii\helpers\ArrayHelper;
 use feehi\web\Request;
 use feehi\web\Response;
 use feehi\web\Session;
 use feehi\swoole\SwooleServer;
+use yii\helpers\FileHelper;
 use yii\web\Application;
+use yii\web\UploadedFile;
 
 class SwooleController extends \yii\console\Controller
 {
@@ -31,6 +35,12 @@ class SwooleController extends \yii\console\Controller
 
     public $app = "frontend";
 
+    public $web = "web";
+
+    public $debug = true;//是否开启debug
+
+    public $env = 'dev';//环境，dev或者prod...
+
     public $swooleConfig = [];
 
     public $gcSessionInterval = 60000;//启动session回收的间隔时间，单位为毫秒
@@ -39,12 +49,22 @@ class SwooleController extends \yii\console\Controller
 
     public function actionStart()
     {
-        $rootDir = $this->rootDir;
-        $web = $rootDir . $this->app . '/web';;
+        if( $this->getPid() !== false ){
+            $this->stderr("server already  started");
+            exit(1);
+        }
 
+        $pidDir = dirname($this->swooleConfig['pid_file']);
+        if( !file_exists($pidDir) ) FileHelper::createDirectory($pidDir);
 
-        defined('YII_DEBUG') or define('YII_DEBUG', true);
-        defined('YII_ENV') or define('YII_ENV', 'dev');
+        $logDir = dirname($this->swooleConfig['log_file']);
+        if( !file_exists($logDir) ) FileHelper::createDirectory($logDir);
+
+        $rootDir = $this->rootDir;//网站根目录，basic为下载下来的yii2目录，advanced为frontend或backend的目录
+        $web = $rootDir . $this->app . DIRECTORY_SEPARATOR . $this->web;;
+
+        defined('YII_DEBUG') or define('YII_DEBUG', $this->debug);
+        defined('YII_ENV') or define('YII_ENV', $this->env);
 
         require($rootDir . '/vendor/autoload.php');
         //require($rootDir . '/vendor/yiisoft/yii2/Yii.php');
@@ -88,14 +108,35 @@ class SwooleController extends \yii\console\Controller
             ];
             $config['components']['response'] = isset($config['components']['response']) ? array_merge($config['components']['response'], $responseComponent) : $responseComponent;
 
-            $config['components']['session'] = [
-                "class" => Session::className()
-            ];
+            $config['components']['session'] = isset($config['components']['session']) ? array_merge(['savePath'=>$web . '/../session'], $config['components']['session'],  ["class" => Session::className()]) :  ["class" => Session::className(), 'savePath'=>$web . '/../session'];
+
+            $config['components']['errorHandler'] = isset($config['components']['errorHandler']) ? array_merge($config['components']['errorHandler'], ["class" => ErrorHandler::className()]) : ["class" => ErrorHandler::className()];
 
             try {
                 $application = new Application($config);
                 yii::$app->setAliases($aliases);
-                $application->run();
+                try {
+                    $application->state = Application::STATE_BEFORE_REQUEST;
+                    $application->trigger(Application::EVENT_BEFORE_REQUEST);
+
+                    $application->state = Application::STATE_HANDLING_REQUEST;
+                    $yiiresponse = $application->handleRequest($application->getRequest());
+
+                    $application->state = Application::STATE_AFTER_REQUEST;
+                    $application->trigger(Application::EVENT_AFTER_REQUEST);
+
+                    $application->state = Application::STATE_SENDING_RESPONSE;
+
+                    $yiiresponse->send();
+
+                    $application->state = Application::STATE_END;
+                } catch (ExitException $e) {
+                    $application->end($e->statusCode, isset($yiiresponse) ? $yiiresponse : null);
+                }
+                yii::$app->getDb()->close();
+                UploadedFile::reset();
+                yii::$app->getLog()->getLogger()->flush();
+                yii::$app->getLog()->getLogger()->flush(true);
             }catch (\Exception $e){
                 yii::$app->getErrorHandler()->handleException($e);
             }
@@ -118,18 +159,22 @@ class SwooleController extends \yii\console\Controller
 
     public function actionRestart()
     {
-        $pid = $this->sendSignal(SIGTERM);
+        $this->sendSignal(SIGTERM);
         $time = 0;
-        while (posix_getpgid($pid) && $time <= 10) {
+        while (posix_getpgid($this->getPid()) && $time <= 10) {
             usleep(100000);
             $time++;
         }
         if ($time > 100) {
-            $this->stdout( 'timeout' . PHP_EOL );
+            $this->stderr("Server stopped timeout" . PHP_EOL);
             exit(1);
         }
+        if( $this->getPid() === false ){
+            $this->stdout("Server is stopped success" . PHP_EOL);
+        }else{
+            $this->stderr("Server stopped error, please handle kill process" . PHP_EOL);
+        }
         $this->actionStart();
-        $this->stdout("server restart success, listening {$this->host}:{$this->port}" . PHP_EOL);
     }
 
     public function actionReload()

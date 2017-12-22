@@ -224,7 +224,11 @@ class Request extends \yii\web\Request
                 foreach ($temp as $v){
                     $arr = explode('=', $v);
                     if( count($arr) < 2 ) continue;
-                    $get[$arr[0]] = $arr[1];
+                    if( preg_match('/\[(.*)\]/i', $arr[0], $matches) ){
+                        $get[str_replace($matches[0], '', $arr[0])][$matches[1]] = $arr[1];
+                    }else {
+                        $get[$arr[0]] = $arr[1];
+                    }
                 }
             };
             return $get;

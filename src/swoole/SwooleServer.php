@@ -11,7 +11,7 @@ namespace feehi\swoole;
 use feehi\web\Session;
 use swoole_http_server;
 
-class SwooleServer extends \yii\base\Object
+class SwooleServer extends \yii\base\BaseObject
 {
     public $swoole;
 

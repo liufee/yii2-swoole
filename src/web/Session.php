@@ -5,6 +5,7 @@ namespace feehi\web;
 use Yii;
 use yii\base\Component;
 use yii\base\InvalidConfigException;
+use yii\helpers\FileHelper;
 use yii\web\SessionIterator;
 
 class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Countable
@@ -16,6 +17,10 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
     public $flashParam = '__flash';
 
     private $_started = false;
+
+    public $handler;
+
+    public $timeout = null;
 
     private $_cookieParams = [
         'lifetime' => 1400,
@@ -34,6 +39,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
             Yii::warning('Session is already started', __METHOD__);
             $this->updateFlashCounters();
         }
+        if($this->timeout !== null) $this->_cookieParams['lifetime'] = $this->timeout;
     }
 
     public function getSessionFullName()
@@ -70,9 +76,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         if ($this->getIsActive()) {
             return;
         }
-        if( !is_dir($this->getSavePath()) ){
-            throw new InvalidConfigException("SESSION save path {$this->savePath} is not exists");
-        }
+        if( !is_dir($this->getSavePath()) ) FileHelper::createDirectory($this->getSavePath());
         if( !is_readable($this->getSavePath()) ){
             throw new InvalidConfigException("SESSION saved path {$this->savePath} is not readable");
         }

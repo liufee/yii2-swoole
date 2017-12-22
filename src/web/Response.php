@@ -472,7 +472,7 @@ class Response extends \yii\web\Response
         }
         $url = Url::to($url);
         if (strpos($url, '/') === 0 && strpos($url, '//') !== 0) {
-            $url = Yii::$app->getRequest()->getHostInfo() . $url;
+            $url = ( yii::$app->getRequest()->getIsSecureConnection() ? "https://" : "http://" ) . Yii::$app->getRequest()->getHostInfo()  . $url;
         }
 
         if ($checkAjax) {
@@ -482,15 +482,15 @@ class Response extends \yii\web\Response
                     $statusCode = 200;
                 }
                 if (Yii::$app->getRequest()->getIsPjax()) {
-                    $this->getHeaders()->set('X-Pjax-Url', $url);
+                    $this->swooleResponse->header('X-Pjax-Url', $url);
                 } else {
-                    $this->getHeaders()->set('X-Redirect', $url);
+                    $this->swooleResponse->header('X-Redirect', $url);
                 }
             } else {
-                $this->getHeaders()->set('Location', $url);
+                $this->swooleResponse->header('Location', $url);
             }
         } else {
-            $this->getHeaders()->set('Location', $url);
+            $this->swooleResponse->header('Location', $url);
         }
 
         $this->setStatusCode($statusCode);
