@@ -23,6 +23,25 @@ yii2 swoole
 
 这里用作比较的demo是采用yii2框架开发的一款cms系统[FeehiCMS](http://www.github.com/liufee/cms)，因为FeehiCMS只开发基础cms功能，未对yii框架做任何封装、改造，故选择此作为体验demo。
  
+
+yii2-swoole和php-fpm下的FeehiCMS
+---------------
+使用yii2自带的yii2-debugger，比较后端响应时间。
+
+因yii2使用YII_BEGIN_TIME常量和register_shutdown_function函数实现yii2-debugger，而swoole常住内存，所以此处yii2-swoole复写了这两个组件少数方法。swoole开始时间从onRequest开始算起。
+* FeehiCMS前台
+    - php-fpm:
+    ![php-fpm](docs/feehicms_frontend_index_php-fpm.png) 
+    - yii2-swoole
+    ![php-fpm](docs/feehicms_frontend_index_yii2-swoole.png) 
+
+
+* FeehiCMS后台
+    - php-fpm:
+    ![php-fpm](docs/feehicms_backend_php-fpm.png) 
+    - yii2-swoole
+    ![php-fpm](docs/feehicms_backend_yii2-swoole.png) 
+ 
 安装
 ---------------
 1. 使用composer
@@ -50,6 +69,9 @@ yii2 swoole
             'app' => 'frontend',//app目录地址
             'host' => '127.0.0.1',//监听地址
             'port' => 9999,//监听端口
+            'web' => 'web',//默认为web。rootDir app web目的是拼接yii2的根目录，如果你的应用为basic，那么frontend为空即可。
+            'debug' => true,//默认开启debug，上线应置为false
+            'env' => 'dev',//默认为dev，上线应置为prod 
             'swooleConfig' => [//标准的swoole配置项都可以再此加入
                 'reactor_num' => 2,
                 'worker_num' => 4,
@@ -65,14 +87,17 @@ yii2 swoole
             'app' => 'backend',
             'host' => '127.0.0.1',
             'port' => 9998,
+            'web' => 'web',//默认为web。rootDir app web目的是拼接yii2的根目录，如果你的应用为basic，那么frontend为空即可。
+            'debug' => true,//默认开启debug，上线应置为false
+            'env' => 'dev',//默认为dev，上线应置为prod 
             'swooleConfig' => [
-            'reactor_num' => 2,
-            'worker_num' => 4,
-            'daemonize' => false,
-            'log_file' => __DIR__ . '/../../backend/runtime/logs/swoole.log',
-            'log_level' => 0,
-            'pid_file' => __DIR__ . '/../../backend/runtime/server.pid',
-        ],
+                'reactor_num' => 2,
+                'worker_num' => 4,
+                'daemonize' => false,
+                'log_file' => __DIR__ . '/../../backend/runtime/logs/swoole.log',
+                'log_level' => 0,
+                'pid_file' => __DIR__ . '/../../backend/runtime/server.pid',
+            ],
     ]
     ...//其他配置
  ]
@@ -94,20 +119,23 @@ yii2 swoole
     * 关闭 /path/to/php /path/to/yii swoole-backend/stop
     * 重启 /path/to/php /path/to/yii swoole-backend/restart
     
-使用systemd启动和开机自动启动
+    
+使用systemd管理yii2-swoole的启动关闭
 ---------------------------
-  * 使用systemd来管理服务
-  
+像管理apache一样使用service httpd start和service httpd stop以及service httpd restart来启动、关闭、重启yii2 swoole服务了。
+
     1. 复制feehi.service和feehi-backend.service到/etc/systemd/system目录
     2. 分别修改feehi.service和feehi-backend.service中[Service]部分的 /path/to/yii2app为你的目录，/path/to/php为你的php命令绝对路径
     3. 运行systemctl daemon-reload
+
+现在可以使用 serice feehi start和service feehi stop以及service feehi restart启动、关闭、重启前台。
+           serice feehi-backend start和service feehi-backend stop以及service feehi-backend restart启动、关闭、重启后台
   
-  现在可以像管理apache一样使用service httpd start和service httpd stop以及service httpd restart来启动、关闭、重启yii2 swoole服务了。serice feehi start和service feehi stop以及service feehi restart启动、关闭、重启前台。
-  serice feehi-backend start和service feehi-backend stop以及service feehi-backend restart启动、关闭、重启后台
     
     
-  * 加入开机自动启动
-  
+加入开机自动启动
+---------------------------   
+ 
    方法一 
    
         1. 使用systemd管理服务
@@ -115,7 +143,9 @@ yii2 swoole
         
    方法二
    
-        在/etc/rc.local中加入/path/to/php /path/to/yii2app/yii swoole/start和/path/to/php /path/to/yii2app/yii swoole-backend/start两行
+        在/etc/rc.local中加入
+        /path/to/php /path/to/yii2app/yii swoole/start
+        /path/to/php /path/to/yii2app/yii swoole-backend/start
   
 
 Nginx配置
@@ -131,7 +161,7 @@ Nginx配置
     root $web;
     server_name swoole.cms.test.docker;
 
-    location ~* .(ico|gif|bmp|jpg|jpeg|png|swf|js|css|mp3) {
+    location ~* .(ico|gif|bmp|jpg|jpeg|png|swf|js|css|mp3)$ {
     root  $web;
     }
 
@@ -159,7 +189,7 @@ Nginx配置
     root $web;
     server_name swoole-admin.cms.test.docker;
 
-    location ~* .(ico|gif|bmp|jpg|jpeg|png|swf|js|css|mp3) {
+    location ~* .(ico|gif|bmp|jpg|jpeg|png|swf|js|css|mp3)$ {
         root  $web;
     }
 
@@ -177,8 +207,3 @@ Nginx配置
 调试
 -------------
 var_dump、echo都是输出到控制台，不方便调试。可以使用\feehi\swoole\Util::dump()，输出数组、对象、字符串、布尔值到浏览器
-
-
-其他
--------------
-以上是把swoole启动/关闭/重启命令集成到了yii2 console里面，如果你并不想使用集成到yii2 console的swoole，可以复制vendor/feehi/yii2-swoole下的backend.php和frontend.php，修改$rootDir = "/path/to/project"为真正的yii2项目根目录,然后执行php backend.php以及php frontend.php启动swoole

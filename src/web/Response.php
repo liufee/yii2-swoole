@@ -472,7 +472,12 @@ class Response extends \yii\web\Response
         }
         $url = Url::to($url);
         if (strpos($url, '/') === 0 && strpos($url, '//') !== 0) {
-            $url = ( yii::$app->getRequest()->getIsSecureConnection() ? "https://" : "http://" ) . Yii::$app->getRequest()->getHostInfo()  . $url;
+            $hostInfo = Yii::$app->getRequest()->getHostInfo();
+            if( strpos($hostInfo, 'http://') === 0 || strpos($hostInfo, 'https://') === 0 ){
+                $url = $hostInfo  . $url;
+            }else{
+                $url = ( yii::$app->getRequest()->getIsSecureConnection() ? "https://" : "http://" ) . $hostInfo  . $url;
+            }
         }
 
         if ($checkAjax) {

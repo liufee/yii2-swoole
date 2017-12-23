@@ -11,7 +11,7 @@ namespace feehi\swoole;
 use feehi\web\Session;
 use swoole_http_server;
 
-class SwooleServer extends \yii\base\BaseObject
+class SwooleServer
 {
     public $swoole;
 
@@ -29,7 +29,6 @@ class SwooleServer extends \yii\base\BaseObject
         $this->swoole->set($swooleConfig);
         $this->swoole->on('request', [$this, 'onRequest']);
         $this->swoole->on('WorkerStart', [$this, 'onWorkerStart']);
-        parent::__construct();
     }
 
     public function run()

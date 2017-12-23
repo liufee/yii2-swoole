@@ -8,7 +8,12 @@
 
 namespace feehi\console;
 
+use feehi\web\Logger;
 use yii;
+use feehi\debug\panels\ProfilingPanel;
+use feehi\debug\panels\TimelinePanel;
+use feehi\debug\Module;
+use feehi\web\Dispatcher;
 use feehi\web\ErrorHandler;
 use yii\base\ExitException;
 use yii\helpers\ArrayHelper;
@@ -112,8 +117,23 @@ class SwooleController extends \yii\console\Controller
 
             $config['components']['errorHandler'] = isset($config['components']['errorHandler']) ? array_merge($config['components']['errorHandler'], ["class" => ErrorHandler::className()]) : ["class" => ErrorHandler::className()];
 
+            if( isset($config['components']['log']) ){
+                $config['components']['log'] = array_merge($config['components']['log'], ["class" => Dispatcher::className(), 'logger' => Logger::className()]);
+            }
+
+            if( isset($config['modules']['debug']) ){
+                $config['modules']['debug'] = array_merge($config['modules']['debug'], [
+                    "class" => Module::className(),
+                    'panels' => [
+                        'profiling' => ['class' => ProfilingPanel::className()],
+                        'timeline' => ['class' => TimelinePanel::className()],
+                    ]
+                ]);
+            }
+
             try {
                 $application = new Application($config);
+                yii::$app->getLog()->yiiBeginAt = microtime(true);
                 yii::$app->setAliases($aliases);
                 try {
                     $application->state = Application::STATE_BEFORE_REQUEST;
