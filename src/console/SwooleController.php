@@ -38,7 +38,9 @@ class SwooleController extends \yii\console\Controller
 
     public $rootDir = "";
 
-    public $app = "frontend";
+    public $type = "advanced";
+
+    public $app = "frontend";//如果type为basic,这里默认为空
 
     public $web = "web";
 
@@ -65,7 +67,7 @@ class SwooleController extends \yii\console\Controller
         $logDir = dirname($this->swooleConfig['log_file']);
         if( !file_exists($logDir) ) FileHelper::createDirectory($logDir);
 
-        $rootDir = $this->rootDir;//网站根目录，basic为下载下来的yii2目录，advanced为frontend或backend的目录
+        $rootDir = $this->rootDir;//yii2项目根目录
         $web = $rootDir . $this->app . DIRECTORY_SEPARATOR . $this->web;;
 
         defined('YII_DEBUG') or define('YII_DEBUG', $this->debug);
@@ -73,15 +75,19 @@ class SwooleController extends \yii\console\Controller
 
         require($rootDir . '/vendor/autoload.php');
         //require($rootDir . '/vendor/yiisoft/yii2/Yii.php');
-        require($rootDir . '/common/config/bootstrap.php');
-        require($rootDir . $this->app .  '/config/bootstrap.php');
+        if( $this->type == 'basic' ){
+            $config = require($rootDir . '/config/web.php');
+        }else {
+            require($rootDir . '/common/config/bootstrap.php');
+            require($rootDir . $this->app . '/config/bootstrap.php');
 
-        $config = ArrayHelper::merge(
-            require($rootDir . '/common/config/main.php'),
-            require($rootDir . '/common/config/main-local.php'),
-            require($rootDir . $this->app . '/config/main.php'),
-            require($rootDir . $this->app . '/config/main-local.php')
-        );
+            $config = ArrayHelper::merge(
+                require($rootDir . '/common/config/main.php'),
+                require($rootDir . '/common/config/main-local.php'),
+                require($rootDir . $this->app . '/config/main.php'),
+                require($rootDir . $this->app . '/config/main-local.php')
+            );
+        }
 
         $this->swooleConfig = array_merge([
             'document_root' => $web,
@@ -95,6 +101,7 @@ class SwooleController extends \yii\console\Controller
          * @param \swoole_http_response $response
          */
         $server->runApp = function ($request, $response) use ($config, $web) {
+            $yiiBeginAt = microtime(true);
             $aliases = [
                 '@web' => '',
                 '@webroot' => $web,
@@ -113,7 +120,7 @@ class SwooleController extends \yii\console\Controller
             ];
             $config['components']['response'] = isset($config['components']['response']) ? array_merge($config['components']['response'], $responseComponent) : $responseComponent;
 
-            $config['components']['session'] = isset($config['components']['session']) ? array_merge(['savePath'=>$web . '/../session'], $config['components']['session'],  ["class" => Session::className()]) :  ["class" => Session::className(), 'savePath'=>$web . '/../session'];
+            $config['components']['session'] = isset($config['components']['session']) ? array_merge(['savePath'=>$web . '/../runtime/session'], $config['components']['session'],  ["class" => Session::className()]) :  ["class" => Session::className(), 'savePath'=>$web . '/../session'];
 
             $config['components']['errorHandler'] = isset($config['components']['errorHandler']) ? array_merge($config['components']['errorHandler'], ["class" => ErrorHandler::className()]) : ["class" => ErrorHandler::className()];
 
@@ -133,7 +140,7 @@ class SwooleController extends \yii\console\Controller
 
             try {
                 $application = new Application($config);
-                yii::$app->getLog()->yiiBeginAt = microtime(true);
+                yii::$app->getLog()->yiiBeginAt = $yiiBeginAt;
                 yii::$app->setAliases($aliases);
                 try {
                     $application->state = Application::STATE_BEFORE_REQUEST;
