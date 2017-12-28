@@ -1,15 +1,10 @@
 yii2 swoole
 ===============================
 
-让yii2运行在swoole上。如果您在使用中遇到问题或者想学习yii2结合swoole可以加qq群258780872一起讨论
+让yii2运行在swoole上，不用修改一句代码。
 
-
-性能
-----------------
-运行在swoole上的yii2是运行在php-fpm上yii2的5倍以上，而且一句代码也不用修改。
  
- 
-在线demo性能体验
+演示站点
 ----------------
 各个演示站点后台   **用户名:feehicms 密码123456**
   * php7.1.8 (php-fpm+nginx+yii2)
@@ -24,24 +19,6 @@ yii2 swoole
 这里用作比较的demo是采用yii2框架开发的一款cms系统[FeehiCMS](http://www.github.com/liufee/cms)，因为FeehiCMS只开发基础cms功能，未对yii框架做任何封装、改造，故选择此作为体验demo。
  
 
-yii2-swoole和php-fpm下的FeehiCMS
----------------
-使用yii2自带的yii2-debugger，比较后端响应时间。
-
-因yii2使用YII_BEGIN_TIME常量和register_shutdown_function函数实现yii2-debugger，而swoole常住内存，所以此处yii2-swoole复写了这两个组件少数方法。swoole开始时间从onRequest开始算起。
-* FeehiCMS前台
-    - php-fpm:
-    ![php-fpm](docs/feehicms_frontend_index_php-fpm.png) 
-    - yii2-swoole
-    ![php-fpm](docs/feehicms_frontend_index_yii2-swoole.png) 
-
-
-* FeehiCMS后台
-    - php-fpm:
-    ![php-fpm](docs/feehicms_backend_php-fpm.png) 
-    - yii2-swoole
-    ![php-fpm](docs/feehicms_backend_yii2-swoole.png) 
- 
 安装
 ---------------
 1. 使用composer
