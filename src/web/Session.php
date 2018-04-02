@@ -22,6 +22,20 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
 
     public $timeout = null;
 
+    /**
+     * 设置sessionName
+     * 配置文件中可设置sessionName，默认为 feehi_session
+     * 'components'=>[
+     * ...
+     * 'session'=>[
+     *      'name' => 'PHPSESSIONID',
+     * ]
+     * ...
+     * ]
+     * @var $name
+     */
+    public $name;
+
     private $_cookieParams = [
         'lifetime' => 1400,
         'path' => '/',
@@ -154,7 +168,15 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
 
     public function getName()
     {
-        return "feehi_session";
+        if($this->name==null){
+            $this->name='feehi_session';
+        }
+        return $this->name;
+    }
+
+    public function setName($name)
+    {
+        $this->name=$name;
     }
 
     public function getSavePath()
