@@ -46,6 +46,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
 
     private $_prefix = "feehi_";
 
+
     public function init()
     {
         parent::init();
@@ -55,16 +56,72 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         }
         if($this->timeout !== null) $this->_cookieParams['lifetime'] = $this->timeout;
     }
-
+    /**
+     * Returns a value indicating whether to use custom session storage.
+     * This method should be overridden to return true by child classes that implement custom session storage.
+     * To implement custom session storage, override these methods: [[openSession()]], [[closeSession()]],
+     * [[readSession()]], [[writeSession()]], [[destroySession()]] and [[gcSession()]].
+     * @return bool whether to use custom storage.
+     */
+    public function getUseCustomStorage()
+    {
+        return false;
+    }
     public function getSessionFullName()
     {
         return $this->getSavePath() . $this->_prefix . $this->getId();
     }
-
     public function persist()
     {
         $this->open();
-        file_put_contents($this->getSessionFullName(), json_encode($_SESSION));
+        $this->writeSession($this->getId(),\yii\helpers\Json::encode($_SESSION));
+    }
+
+    public function open()
+    {
+        if ($this->getIsActive()) {
+            return;
+        }
+        $_SESSION=$this->readSession($this->getId());
+        $this->_started = true;
+    }
+    /**
+     * Session read handler.
+     * @internal Do not call this method directly.
+     * @param string $id session ID
+     * @return array the session data
+     */
+    public function readSession($id)
+    {
+        if( !is_dir($this->getSavePath()) ) FileHelper::createDirectory($this->getSavePath());
+        if( !is_readable($this->getSavePath()) ){
+            throw new InvalidConfigException("SESSION saved path {$this->savePath} is not readable");
+        }
+        if( !is_writable($this->getSavePath()) ){
+            throw new InvalidConfigException("SESSION saved path {$this->savePath} is not writable");
+        }
+        $file =  $this->getSessionFullName();
+        if( file_exists($file) && is_file($file) ) {
+            $data = file_get_contents($file);
+            $data = json_decode($data, true);
+        }else{
+            $data = [];
+        }
+        return $data;
+    }
+
+    /**
+     * Session 写入
+     *  默认写入文件，可重写该方法，设置session存储介质
+     * @internal Do not call this method directly.
+     * @param string $id session ID
+     * @param string $data session data
+     * @return bool whether session write is successful
+     */
+    public function writeSession($id, $data)
+    {
+        file_put_contents($this->getSessionFullName(), $data);
+        return true;
     }
 
     /**
@@ -84,38 +141,13 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
             }
         }
     }
-
-    public function open()
-    {
-        if ($this->getIsActive()) {
-            return;
-        }
-        if( !is_dir($this->getSavePath()) ) FileHelper::createDirectory($this->getSavePath());
-        if( !is_readable($this->getSavePath()) ){
-            throw new InvalidConfigException("SESSION saved path {$this->savePath} is not readable");
-        }
-        if( !is_writable($this->getSavePath()) ){
-            throw new InvalidConfigException("SESSION saved path {$this->savePath} is not writable");
-        }
-        $file = $this->getSessionFullName();
-        if( file_exists($file) && is_file($file) ) {
-            $data = file_get_contents($file);
-            $_SESSION = json_decode($data, true);
-        }else{
-            $_SESSION = [];
-        }
-        $this->_started = true;
-    }
-
     public function getCookieParams()
     {
         return $this->_cookieParams;
     }
-
     public function setCookieParams(array $config){
         $this->_cookieParams = $config;
     }
-
     public function destroy()
     {
         $this->open();
@@ -123,14 +155,11 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
             $_SESSION = [];
         }
     }
-
     public function getIsActive()
     {
         return $this->_started;
     }
-
     private $_hasSessionId;
-
     public function getHasSessionId()
     {
         if ($this->_hasSessionId === null) {
@@ -146,12 +175,10 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         }
         return $this->_hasSessionId;
     }
-
     public function setHasSessionId($value)
     {
         $this->_hasSessionId = $value;
     }
-
     public function getId()
     {
         if( isset($_COOKIE[$this->getName()]) ){
@@ -161,67 +188,52 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         }
         return $id;
     }
-
     public function regenerateID($deleteOldSession = false)
     {
     }
-
     public function getName()
     {
-        if($this->name==null){
-            $this->name='feehi_session';
-        }
-        return $this->name;
+        return $this->name?:'yzb_';
     }
-
-    public function setName($name)
-    {
-        $this->name=$name;
+    public function setName($name){
+        return $this->name=$name;
     }
-
     public function getSavePath()
     {
-        if( strrpos( $this->savePath, '/') !==0 ){
+        if( substr( $this->savePath,-1) !='/' ){
             $this->savePath .= '/';
         }
         return $this->savePath;
     }
-
     public function setSavePath($value)
     {
         $this->savePath = $value;
     }
-
     public function getIterator()
     {
         $this->open();
         return new SessionIterator();
     }
-
     public function getCount()
     {
         $this->open();
         return count($_SESSION);
     }
-
     public function count()
     {
         $this->open();
         return $this->getCount();
     }
-
     public function get($key, $defaultValue = null)
     {
         $this->open();
         return isset($_SESSION[$key]) ? $_SESSION[$key] : $defaultValue;
     }
-
     public function set($key, $value)
     {
         $this->open();
         $_SESSION[$key] = $value;
     }
-
     public function remove($key)
     {
         $this->open();
@@ -232,7 +244,6 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         }
         return null;
     }
-
     public function removeAll()
     {
         $this->open();
@@ -240,13 +251,11 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
             unset($_SESSION[$key]);
         }
     }
-
     public function has($key)
     {
         $this->open();
         return isset($_SESSION[$key]);
     }
-
     protected function updateFlashCounters()
     {
         $this->open();
@@ -265,7 +274,6 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
             unset($_SESSION[$this->flashParam]);
         }
     }
-
     public function getFlash($key, $defaultValue = null, $delete = true)
     {
         $this->open();
@@ -283,7 +291,6 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         }
         return $defaultValue;
     }
-
     public function getAllFlashes($delete = false)
     {
         $this->open();
@@ -305,7 +312,6 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         $_SESSION[$this->flashParam] = $counters;
         return $flashes;
     }
-
     public function setFlash($key, $value = true, $removeAfterAccess = true)
     {
         $this->open();
@@ -314,7 +320,6 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         $_SESSION[$key] = $value;
         $_SESSION[$this->flashParam] = $counters;
     }
-
     public function addFlash($key, $value = true, $removeAfterAccess = true)
     {
         $this->open();
@@ -331,7 +336,6 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
             }
         }
     }
-
     public function removeFlash($key)
     {
         $this->open();
@@ -341,7 +345,6 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         $_SESSION[$this->flashParam] = $counters;
         return $value;
     }
-
     public function removeAllFlashes()
     {
         $this->open();
@@ -351,34 +354,41 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         }
         unset($_SESSION[$this->flashParam]);
     }
-
     public function hasFlash($key)
     {
         $this->open();
         return $this->getFlash($key) !== null;
     }
-
     public function offsetExists($offset)
     {
         $this->open();
         return isset($_SESSION[$offset]);
     }
-
     public function offsetGet($offset)
     {
         $this->open();
         return isset($_SESSION[$offset]) ? $_SESSION[$offset] : null;
     }
-
     public function offsetSet($offset, $item)
     {
         $this->open();
         $_SESSION[$offset] = $item;
     }
-
     public function offsetUnset($offset)
     {
         $this->open();
         unset($_SESSION[$offset]);
+    }
+    public function getTimeout()
+    {
+        if($this->timeout==null){
+            $this->timeout=1400;
+        }
+        return $this->timeout;
+    }
+
+    public function setTimeout($timeout)
+    {
+        $this->timeout=$timeout;
     }
 }
