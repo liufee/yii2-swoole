@@ -56,6 +56,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         }
         if($this->timeout !== null) $this->_cookieParams['lifetime'] = $this->timeout;
     }
+
     /**
      * Returns a value indicating whether to use custom session storage.
      * This method should be overridden to return true by child classes that implement custom session storage.
@@ -67,10 +68,12 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
     {
         return false;
     }
+
     public function getSessionFullName()
     {
         return $this->getSavePath() . $this->_prefix . $this->getId();
     }
+
     public function persist()
     {
         $this->open();
@@ -85,6 +88,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         $_SESSION=$this->readSession($this->getId());
         $this->_started = true;
     }
+
     /**
      * Session read handler.
      * @internal Do not call this method directly.
@@ -141,13 +145,16 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
             }
         }
     }
+
     public function getCookieParams()
     {
         return $this->_cookieParams;
     }
+
     public function setCookieParams(array $config){
         $this->_cookieParams = $config;
     }
+
     public function destroy()
     {
         $this->open();
@@ -155,11 +162,14 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
             $_SESSION = [];
         }
     }
+
     public function getIsActive()
     {
         return $this->_started;
     }
+
     private $_hasSessionId;
+
     public function getHasSessionId()
     {
         if ($this->_hasSessionId === null) {
@@ -175,10 +185,12 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         }
         return $this->_hasSessionId;
     }
+
     public function setHasSessionId($value)
     {
         $this->_hasSessionId = $value;
     }
+
     public function getId()
     {
         if( isset($_COOKIE[$this->getName()]) ){
@@ -188,16 +200,24 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         }
         return $id;
     }
+
     public function regenerateID($deleteOldSession = false)
     {
     }
+
     public function getName()
     {
-        return $this->name?:'yzb_';
+        if($this->name==null){
+            $this->name='feehi_session';
+        }
+        return $this->name;
     }
-    public function setName($name){
-        return $this->name=$name;
+
+    public function setName($name)
+    {
+        $this->name=$name;
     }
+
     public function getSavePath()
     {
         if( substr( $this->savePath,-1) !='/' ){
@@ -205,35 +225,42 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         }
         return $this->savePath;
     }
+
     public function setSavePath($value)
     {
         $this->savePath = $value;
     }
+
     public function getIterator()
     {
         $this->open();
         return new SessionIterator();
     }
+
     public function getCount()
     {
         $this->open();
         return count($_SESSION);
     }
+
     public function count()
     {
         $this->open();
         return $this->getCount();
     }
+
     public function get($key, $defaultValue = null)
     {
         $this->open();
         return isset($_SESSION[$key]) ? $_SESSION[$key] : $defaultValue;
     }
+
     public function set($key, $value)
     {
         $this->open();
         $_SESSION[$key] = $value;
     }
+
     public function remove($key)
     {
         $this->open();
@@ -244,6 +271,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         }
         return null;
     }
+
     public function removeAll()
     {
         $this->open();
@@ -251,11 +279,13 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
             unset($_SESSION[$key]);
         }
     }
+
     public function has($key)
     {
         $this->open();
         return isset($_SESSION[$key]);
     }
+
     protected function updateFlashCounters()
     {
         $this->open();
@@ -274,6 +304,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
             unset($_SESSION[$this->flashParam]);
         }
     }
+
     public function getFlash($key, $defaultValue = null, $delete = true)
     {
         $this->open();
@@ -291,6 +322,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         }
         return $defaultValue;
     }
+
     public function getAllFlashes($delete = false)
     {
         $this->open();
@@ -312,6 +344,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         $_SESSION[$this->flashParam] = $counters;
         return $flashes;
     }
+
     public function setFlash($key, $value = true, $removeAfterAccess = true)
     {
         $this->open();
@@ -320,6 +353,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         $_SESSION[$key] = $value;
         $_SESSION[$this->flashParam] = $counters;
     }
+
     public function addFlash($key, $value = true, $removeAfterAccess = true)
     {
         $this->open();
@@ -336,6 +370,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
             }
         }
     }
+
     public function removeFlash($key)
     {
         $this->open();
@@ -345,6 +380,7 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         $_SESSION[$this->flashParam] = $counters;
         return $value;
     }
+
     public function removeAllFlashes()
     {
         $this->open();
@@ -354,31 +390,37 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
         }
         unset($_SESSION[$this->flashParam]);
     }
+
     public function hasFlash($key)
     {
         $this->open();
         return $this->getFlash($key) !== null;
     }
+
     public function offsetExists($offset)
     {
         $this->open();
         return isset($_SESSION[$offset]);
     }
+
     public function offsetGet($offset)
     {
         $this->open();
         return isset($_SESSION[$offset]) ? $_SESSION[$offset] : null;
     }
+
     public function offsetSet($offset, $item)
     {
         $this->open();
         $_SESSION[$offset] = $item;
     }
+
     public function offsetUnset($offset)
     {
         $this->open();
         unset($_SESSION[$offset]);
     }
+
     public function getTimeout()
     {
         if($this->timeout==null){
