@@ -21,6 +21,8 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
     public $handler;
 
     public $timeout = null;
+    
+    public $name = "feehi_session";
 
     private $_cookieParams = [
         'lifetime' => 1400,
@@ -151,10 +153,15 @@ class Session extends Component implements \IteratorAggregate, \ArrayAccess, \Co
     public function regenerateID($deleteOldSession = false)
     {
     }
+    
+    public function setName($name)
+    {
+        $this->name = $name;
+    }
 
     public function getName()
     {
-        return "feehi_session";
+        return $this->name;
     }
 
     public function getSavePath()
