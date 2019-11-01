@@ -191,8 +191,5 @@ Nginx配置
 
    log
 
-       因为Yii::info的输出默认获取的是启动app的logger 也就是master app的logger
-       所以直接Yii::info这样打印日志会保存在masterApp里面 而且会输出到console里
-       所以需要显式的调用 Yii::$app->log->logger->log($msg, \yii\log\Logger::LEVEL_INFO, $category);
-       这样才能看到效果
-       关于原因参见这篇文章详解: https://zguoqiang.com/2018/12/17/swoole%E5%9F%BA%E7%A1%80-%E4%B8%8E%E4%BC%A0%E7%BB%9FMVC%E6%A1%86%E6%9E%B6%E7%9A%84%E6%95%B4%E5%90%88/
+       已经修复
+       关于logger为何要替换的原因参见这篇文章详解: https://zguoqiang.com/2018/12/17/swoole%E5%9F%BA%E7%A1%80-%E4%B8%8E%E4%BC%A0%E7%BB%9FMVC%E6%A1%86%E6%9E%B6%E7%9A%84%E6%95%B4%E5%90%88/
