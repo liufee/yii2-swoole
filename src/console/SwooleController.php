@@ -36,6 +36,7 @@ class SwooleController extends \yii\console\Controller
 
     public $socketType = SWOOLE_TCP;
 
+    /** yii2项目根目录 */
     public $rootDir = "";
 
     public $type = "advanced";
@@ -67,17 +68,16 @@ class SwooleController extends \yii\console\Controller
         $logDir = dirname($this->swooleConfig['log_file']);
         if( !file_exists($logDir) ) FileHelper::createDirectory($logDir);
 
-        $rootDir = $this->rootDir;//yii2项目根目录
+        $rootDir = $this->rootDir;
         $web = $rootDir . $this->app . DIRECTORY_SEPARATOR . $this->web;;
 
         defined('YII_DEBUG') or define('YII_DEBUG', $this->debug);
         defined('YII_ENV') or define('YII_ENV', $this->env);
 
         require($rootDir . '/vendor/autoload.php');
-        //require($rootDir . '/vendor/yiisoft/yii2/Yii.php');
-        if( $this->type == 'basic' ){
+        if ($this->type == 'basic') {
             $config = require($rootDir . '/config/web.php');
-        }else {
+        } else {
             require($rootDir . '/common/config/bootstrap.php');
             require($rootDir . $this->app . '/config/bootstrap.php');
 
@@ -109,39 +109,39 @@ class SwooleController extends \yii\console\Controller
             $config['aliases'] = isset($config['aliases']) ? array_merge($aliases, $config['aliases']) : $aliases;
 
             $requestComponent = [
-                'class' => Request::className(),
+                'class' => Request::class,
                 'swooleRequest' => $request,
             ];
             $config['components']['request'] = isset($config['components']['request']) ? array_merge($config['components']['request'], $requestComponent) : $requestComponent;
 
             $responseComponent = [
-                'class' => Response::className(),
+                'class' => Response::class,
                 'swooleResponse' => $response,
             ];
             $config['components']['response'] = isset($config['components']['response']) ? array_merge($config['components']['response'], $responseComponent) : $responseComponent;
 
-            $config['components']['session'] = isset($config['components']['session']) ? array_merge(['savePath'=>$web . '/../runtime/session'], $config['components']['session'],  ["class" => Session::className()]) :  ["class" => Session::className(), 'savePath'=>$web . '/../session'];
+            $config['components']['session'] = isset($config['components']['session']) ? array_merge(['savePath'=>$web . '/../runtime/session'], $config['components']['session'],  ["class" => Session::class]) :  ["class" => Session::class, 'savePath'=>$web . '/../session'];
 
-            $config['components']['errorHandler'] = isset($config['components']['errorHandler']) ? array_merge($config['components']['errorHandler'], ["class" => ErrorHandler::className()]) : ["class" => ErrorHandler::className()];
+            $config['components']['errorHandler'] = isset($config['components']['errorHandler']) ? array_merge($config['components']['errorHandler'], ["class" => ErrorHandler::class]) : ["class" => ErrorHandler::class];
 
             if( isset($config['components']['log']) ){
-                $config['components']['log'] = array_merge($config['components']['log'], ["class" => Dispatcher::className(), 'logger' => Logger::className()]);
+                $config['components']['log'] = array_merge($config['components']['log'], ["class" => Dispatcher::class, 'logger' => Logger::class]);
             }
 
             if( isset($config['modules']['debug']) ){
                 $config['modules']['debug'] = array_merge($config['modules']['debug'], [
-                    "class" => Module::className(),
+                    "class" => Module::class,
                     'panels' => [
-                        'profiling' => ['class' => ProfilingPanel::className()],
-                        'timeline' => ['class' => TimelinePanel::className()],
+                        'profiling' => ['class' => ProfilingPanel::class],
+                        'timeline' => ['class' => TimelinePanel::class],
                     ]
                 ]);
             }
 
             try {
                 $application = new Application($config);
-                yii::$app->getLog()->yiiBeginAt = $yiiBeginAt;
-                yii::$app->setAliases($aliases);
+                Yii::$app->getLog()->yiiBeginAt = $yiiBeginAt;
+                Yii::$app->setAliases($aliases);
                 try {
                     $application->state = Application::STATE_BEFORE_REQUEST;
                     $application->trigger(Application::EVENT_BEFORE_REQUEST);
@@ -160,12 +160,16 @@ class SwooleController extends \yii\console\Controller
                 } catch (ExitException $e) {
                     $application->end($e->statusCode, isset($yiiresponse) ? $yiiresponse : null);
                 }
-                yii::$app->getDb()->close();
+                Yii::$app->getDb()->close();
                 UploadedFile::reset();
-                yii::$app->getLog()->getLogger()->flush();
-                yii::$app->getLog()->getLogger()->flush(true);
+                // 这里刷新当前work app的log
+                Yii::$app->getLog()->getLogger()->flush();
+                Yii::$app->getLog()->getLogger()->flush(true);
+                // 这里刷新master app的log 也就是console里的log 避免出现console常驻而看不到log的情况
+                Yii::getLogger()->flush();
+                Yii::getLogger()->flush(true);
             }catch (\Exception $e){
-                yii::$app->getErrorHandler()->handleException($e);
+                Yii::$app->getErrorHandler()->handleException($e);
             }
         };
 

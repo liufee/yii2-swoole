@@ -326,7 +326,7 @@ class Request extends \yii\web\Request
             return $this->_scriptFile;
         }
 
-        return yii::getAlias("@web");
+        return Yii::getAlias("@web");
     }
 
     public function setScriptFile($value)

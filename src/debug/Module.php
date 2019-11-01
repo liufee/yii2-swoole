@@ -17,7 +17,7 @@ class Module extends \yii\debug\Module
     public function init()
     {
         parent::init();
-        $this->setViewPath('@vendor/yiisoft/yii2-debug/views');
+        $this->setViewPath('@vendor/yiisoft/yii2-debug/src/views');
     }
 
     public function setDebugHeaders($event)
@@ -30,7 +30,7 @@ class Module extends \yii\debug\Module
         ]);
         $event->sender->getHeaders()
             ->set('X-Debug-Tag', $this->logTarget->tag)
-            ->set('X-Debug-Duration', number_format((microtime(true) - yii::$app->getLog()->yiiBeginAt) * 1000 + 1))
+            ->set('X-Debug-Duration', number_format((microtime(true) - Yii::$app->log->yiiBeginAt) * 1000 + 1))
             ->set('X-Debug-Link', $url);
     }
 }

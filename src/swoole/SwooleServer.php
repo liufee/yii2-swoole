@@ -25,7 +25,7 @@ class SwooleServer
     {
         $this->swoole = new swoole_http_server($host, $port, $mode, $socketType);
         $this->webRoot = $swooleConfig['document_root'];
-        if( !empty($this->config) ) $this->config = array_merge($this->config, $config);
+        if (!empty($this->config)) $this->config = array_merge($this->config, $config);
         $this->swoole->set($swooleConfig);
         $this->swoole->on('request', [$this, 'onRequest']);
         $this->swoole->on('WorkerStart', [$this, 'onWorkerStart']);
@@ -85,22 +85,21 @@ class SwooleServer
     {
         $uri = $request->server['request_uri'];
         $extension = pathinfo($uri, PATHINFO_EXTENSION);
-        if( !empty($extension) && in_array($extension, ['js', 'css', 'jpg', 'jpeg', 'png', 'gif', 'webp']) ){
-
+        if (!empty($extension) && in_array($extension, ['js', 'css', 'jpg', 'jpeg', 'png', 'gif', 'webp'])) {
             $web = $this->webRoot;
             rtrim($web, '/');
             $file = $web . '/' . $uri;
-            if( is_file( $file )){
+            if (is_file($file)) {
                 $temp = strrev($file);
-                if( strpos($uri, 'sj.') === 0 ) {
+                if (strpos($uri, 'sj.') === 0) {
                     $response->header('Content-Type', 'application/x-javascript', false);
-                }else if(strpos($temp, 'ssc.') === 0){
+                } else if(strpos($temp, 'ssc.') === 0) {
                     $response->header('Content-Type', 'text/css', false);
-                }else {
+                } else {
                     $response->header('Content-Type', 'application/octet-stream', false);
                 }
                 $response->sendfile($file, 0);
-            }else{
+            } else {
                 $response->status(404);
                 $response->end('');
             }
@@ -112,7 +111,7 @@ class SwooleServer
      */
     private function mountGlobalFilesVar($request)
     {
-        if( isset($request->files) ) {
+        if (isset($request->files)) {
             $files = $request->files;
             foreach ($files as $k => $v) {
                 if( isset($v['name']) ){
@@ -141,7 +140,7 @@ class SwooleServer
         foreach ($header as $key => $value) {
             $_SERVER['HTTP_'.strtoupper($key)] = $value;
         }
-        $_SERVER['SERVER_SOFTWARE'] = "swoole/" . SWOOLE_VERSION;
+        $_SERVER['SERVER_SOFTWARE'] = 'swoole/' . SWOOLE_VERSION;
     }
 
 }

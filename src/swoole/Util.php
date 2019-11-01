@@ -18,10 +18,10 @@ class Util
         }else{
             $body = $var;
         }
-        if( isset(yii::$app->getResponse()->swooleResponse) ){
+        if( isset(Yii::$app->getResponse()->swooleResponse) ){
             echo "dump function must called in request period" . PHP_EOL;
         }
-        yii::$app->getResponse()->swooleResponse->header("Content-Type", "text/html;charset=utf-8");
-        yii::$app->getResponse()->swooleResponse->end($body);
+        Yii::$app->getResponse()->swooleResponse->header("Content-Type", "text/html;charset=utf-8");
+        Yii::$app->getResponse()->swooleResponse->end($body);
     }
 }

@@ -32,7 +32,7 @@ function dump($var)
         $temp .= "}<br>";
         $var = $temp;
     }
-    yii::$app->get('response')->swooleResponse->end($var);
+    Yii::$app->get('response')->swooleResponse->end($var);
 }
 
 $web = $rootDir . "/backend/web/";
@@ -68,21 +68,21 @@ $server->on('request', function ($request, $response)use ($config, $web){
     ];
     $config['aliases'] = isset($config['aliases']) ? array_merge($aliases, $config['aliases']) : $aliases;
     $config['components']['request'] = [
-        'class' => feehi\web\Request::className(),
+        'class' => feehi\web\Request::class,
         'swooleRequest' => $request,
         'cookieValidationKey' => 'KaNMPF6oZegCr0bhED4JHYnhOse7UhrS',
         'enableCsrfValidation' => true,
     ];
     $config['components']['response'] = [
-        'class' => feehi\web\Response::className(),
+        'class' => feehi\web\Response::class,
         'swooleResponse' => $response,
     ];
     $config['components']['assetManager'] = [
-        'class' => yii\web\AssetManager::className(),
+        'class' => yii\web\AssetManager::class,
         'baseUrl' => '/assets'
     ];
     $application = new yii\web\Application($config);
-    yii::$app->setAliases($aliases);
+    Yii::$app->setAliases($aliases);
     $application->run();
 });
 

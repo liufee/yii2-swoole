@@ -9,8 +9,8 @@
 namespace feehi\web;
 
 use Yii;
+use yii\base\InvalidArgumentException;
 use yii\base\InvalidConfigException;
-use yii\base\InvalidParamException;
 use yii\helpers\Inflector;
 use yii\helpers\Url;
 use yii\helpers\FileHelper;
@@ -140,7 +140,7 @@ class Response extends \yii\web\Response
     public function init()
     {
         if ($this->version === null) {
-            $swooleRequest = yii::$app->getRequest()->swooleRequest;
+            $swooleRequest = Yii::$app->getRequest()->swooleRequest;
             if (isset($swooleRequest->server['server_protocol']) && $swooleRequest->server['server_protocol'] === 'HTTP/1.0') {
                 $this->version = '1.0';
             } else {
@@ -165,7 +165,7 @@ class Response extends \yii\web\Response
         }
         $this->_statusCode = (int) $value;
         if ($this->getIsInvalid()) {
-            throw new InvalidParamException("The HTTP status code is invalid: $value");
+            throw new InvalidArgumentException("The HTTP status code is invalid: $value");
         }
         if ($text === null) {
             $this->statusText = isset(static::$httpStatuses[$this->_statusCode]) ? static::$httpStatuses[$this->_statusCode] : '';
@@ -239,7 +239,7 @@ class Response extends \yii\web\Response
 
     protected function sendCookies()
     {
-        $session = yii::$app->getSession();
+        $session = Yii::$app->getSession();
         $data = $session->getCookieParams();
         $this->swooleResponse->cookie($session->getName(), $session->getId(), time()+$data['lifetime'], $data['path'], $data['domain'], $data['secure'], $data['httponly']);
         if ($this->_cookies === null) {
@@ -266,7 +266,7 @@ class Response extends \yii\web\Response
         if ($this->stream === null) {
             $this->swooleResponse->end( $this->content );
 
-            $session = yii::$app->getSession();
+            $session = Yii::$app->getSession();
             $session->persist();
             return;
         }
@@ -294,7 +294,7 @@ class Response extends \yii\web\Response
             fclose($this->stream);
             $this->swooleResponse->end(null);
         }
-        $session = yii::$app->getSession();
+        $session = Yii::$app->getSession();
         $session->persist();
     }
 
@@ -476,7 +476,7 @@ class Response extends \yii\web\Response
             if( strpos($hostInfo, 'http://') === 0 || strpos($hostInfo, 'https://') === 0 ){
                 $url = $hostInfo  . $url;
             }else{
-                $url = ( yii::$app->getRequest()->getIsSecureConnection() ? "https://" : "http://" ) . $hostInfo  . $url;
+                $url = (Yii::$app->getRequest()->getIsSecureConnection() ? "https://" : "http://" ) . $hostInfo  . $url;
             }
         }
 
@@ -606,7 +606,7 @@ class Response extends \yii\web\Response
         }
 
         if (is_array($this->content)) {
-            throw new InvalidParamException('Response content must not be an array.');
+            throw new InvalidArgumentException('Response content must not be an array.');
         } elseif (is_object($this->content)) {
             if( in_array($this->getStatusCode(), [301, 302]) ){
                 $this->content = null;
@@ -614,7 +614,7 @@ class Response extends \yii\web\Response
                 if (method_exists($this->content, '__toString')) {
                     $this->content = $this->content->__toString();
                 } else {
-                    throw new InvalidParamException('Response content must be a string or an object implementing __toString().');
+                    throw new InvalidArgumentException('Response content must be a string or an object implementing __toString().');
                 }
             }
         }
