@@ -18,7 +18,7 @@ class ProfilingPanel extends \yii\debug\panels\ProfilingPanel
         $messages = $target->filterMessages($target->messages, Logger::LEVEL_PROFILE);
         return [
             'memory' => memory_get_peak_usage(),
-            'time' => microtime(true) - yii::$app->getLog()->yiiBeginAt,
+            'time' => microtime(true) - Yii::$app->log->yiiBeginAt,
             'messages' => $messages,
         ];
     }

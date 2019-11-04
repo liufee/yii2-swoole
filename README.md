@@ -41,7 +41,7 @@ yii2 swoole
 'controllerMap'=>[
      ...//其他配置项
      'swoole' => [
-            'class' => feehi\console\SwooleController::className(),
+            'class' => feehi\console\SwooleController::class,
             'rootDir' => str_replace('console/config', '', __DIR__ ),//yii2项目根路径
             'type' => 'advanced',//yii2项目类型，默认为advanced。此处还可以为basic
             'app' => 'frontend',//app目录地址,如果type为basic，这里一般为空
@@ -60,7 +60,7 @@ yii2 swoole
             ],
     ],
     'swoole-backend' => [
-            'class' => feehi\console\SwooleController::className(),
+            'class' => feehi\console\SwooleController::class,
             'rootDir' => str_replace('console/config', '', __DIR__ ),//yii2项目根路径
             'app' => 'backend',
             'host' => '127.0.0.1',
@@ -184,4 +184,12 @@ Nginx配置
 
 调试
 -------------
-var_dump、echo都是输出到控制台，不方便调试。可以使用\feehi\swoole\Util::dump()，输出数组、对象、字符串、布尔值到浏览器
+
+   debug
+
+       var_dump、echo都是输出到控制台，不方便调试。可以使用\feehi\swoole\Util::dump()，输出数组、对象、字符串、布尔值到浏览器
+
+   log
+
+       已经修复
+       关于logger为何要替换的原因参见这篇文章详解: https://zguoqiang.com/2018/12/17/swoole%E5%9F%BA%E7%A1%80-%E4%B8%8E%E4%BC%A0%E7%BB%9FMVC%E6%A1%86%E6%9E%B6%E7%9A%84%E6%95%B4%E5%90%88/
