@@ -111,6 +111,8 @@ class SwooleServer
      */
     private function mountGlobalFilesVar($request)
     {
+        //清空已上传文件，防止跨请求污染
+        $_FILES = [];
         if (isset($request->files)) {
             $files = $request->files;
             foreach ($files as $k => $v) {
