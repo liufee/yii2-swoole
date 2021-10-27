@@ -106,6 +106,8 @@ class SwooleController extends \yii\console\Controller
             $aliases = [
                 '@web' => '',
                 '@webroot' => $web,
+                '@webroot/assets' => $web.'/assets',
+                '@web/assets' => $web.'/assets'
             ];
             $config['aliases'] = isset($config['aliases']) ? array_merge($aliases, $config['aliases']) : $aliases;
 
