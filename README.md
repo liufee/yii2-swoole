@@ -16,6 +16,7 @@ yii2 swoole
     https://www.jianshu.com/p/9c2788ccf3c0
 4. 当你做完123 并且使用过yii2-swoole之后
     可以去了解一下swoft 对比一下为协程而设计的框架和yii2这种的区别
+5. 需要php7+
  
 安装
 ---------------
@@ -41,32 +42,48 @@ yii2 swoole
     'swoole-backend' => [
             'class' => feehi\console\SwooleController::class,
             'rootDir' => str_replace('console/config', '', __DIR__ ),//yii2项目根路径
-            'app' => 'backend',
-            'host' => '127.0.0.1',
-            'port' => 9998,
-            'web' => 'web',//默认为web。rootDir app web目的是拼接yii2的根目录，如果你的应用为basic，那么app为空即可。
-            'debug' => true,//默认开启debug，上线应置为false
-            'env' => 'dev',//默认为dev，上线应置为prod 
-            'swooleConfig' => [
-                'reactor_num' => 2,
-                'worker_num' => 4,
-                'daemonize' => false,
-                'log_file' => __DIR__ . '/../../backend/runtime/logs/swoole.log',
-                'log_level' => 0,
-                'pid_file' => __DIR__ . '/../../backend/runtime/server.pid',
+            'appSettingRoot' => 'swoole', //保存应用设置文件夹，须为yii2项目根路径
             ],
     ]
     ...//其他配置
  ]
  ...//其他配置
 ```
+下一步新建保存应用设置文件夹“swoole”（对应appSettingRoot），并在swoole文件夹中新建新的应用文件，如web_pc.php
+例：
+```bash
+	return [
+        'app' => 'app_web',
+        'host' => '127.0.0.1',
+        'port' => 9001,
+        'web' => 'web_pc',//默认为web。rootDir app web目的是拼接yii2的根目录，如果你的应用为basic，那么app为空即可。
+        'debug' => true,//默认开启debug，上线应置为false
+        'env' => 'dev',//默认为dev，上线应置为prod
+        'swooleConfig' => [
+            'reactor_num' => 1,
+            'worker_num' => 4,
+            'daemonize' => false,
+            'log_file' => __DIR__ . '/../app_web/runtime/logs/swoole_pc.log',
+            'log_level' => 1,
+            'pid_file' => __DIR__ . '/../app_web/runtime/server_pc.pid',
+        ],
+        //自定义调用设置文件,当此项不为空时调用当前设置
+        'customConfigFilenames' =>[
+            __DIR__ . '/../common/config/main.php',
+            __DIR__ . '/../common/config/main-local.php',
+            __DIR__ . '/../app_web/config/main.php',
+            __DIR__ . '/../app_web/config/main-local.php',
+            __DIR__ . '/../app_web/config/main-pc.php',
+        ],
+    ];
+```
 
 
 启动命令
 -------------
-    * 启动 /path/to/php /path/to/yii swoole-backend/start
-    * 关闭 /path/to/php /path/to/yii swoole-backend/stop
-    * 重启 /path/to/php /path/to/yii swoole-backend/restart
+    * 启动web_pc应用 /path/to/php /path/to/yii swoole-backend/start web_pc
+    * 关闭web_pc应用 /path/to/php /path/to/yii swoole-backend/stop web_pc
+    * 重启web_pc应用 /path/to/php /path/to/yii swoole-backend/restart web_pc
     
     
 使用systemd管理yii2-swoole的启动关闭
@@ -89,7 +106,7 @@ yii2 swoole
    方法二
    
         在/etc/rc.local中加入
-        /path/to/php /path/to/yii2app/yii swoole-backend/start
+        /path/to/php /path/to/yii2app/yii swoole-backend/start web_pc
   
 
 Nginx配置
