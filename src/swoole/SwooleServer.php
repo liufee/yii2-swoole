@@ -143,6 +143,9 @@ class SwooleServer
             $_SERVER['HTTP_'.strtoupper($key)] = $value;
         }
         $_SERVER['SERVER_SOFTWARE'] = 'swoole/' . SWOOLE_VERSION;
+
+        // 修复DOCUMENT_ROOT真实路径
+        $_SERVER['DOCUMENT_ROOT'] = $this->webRoot;
     }
 
 }

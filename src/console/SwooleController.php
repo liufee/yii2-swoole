@@ -70,7 +70,7 @@ class SwooleController extends \yii\console\Controller
         }
 
         $rootDir = $this->rootDir;
-        $web = $rootDir . $this->app . DIRECTORY_SEPARATOR . $this->web;
+        $webroot = realpath($rootDir . $this->app . DIRECTORY_SEPARATOR . $this->web);
 
         defined('YII_DEBUG') or define('YII_DEBUG', $this->debug);
         defined('YII_ENV') or define('YII_ENV', $this->env);
@@ -91,7 +91,7 @@ class SwooleController extends \yii\console\Controller
         }
 
         $this->swooleConfig = array_merge([
-            'document_root' => $web,
+            'document_root' => $webroot,
             'enable_static_handler' => true,
         ], $this->swooleConfig);
 
@@ -101,16 +101,8 @@ class SwooleController extends \yii\console\Controller
          * @param \swoole_http_request $request
          * @param \swoole_http_response $response
          */
-        $server->runApp = function ($request, $response) use ($config, $web) {
+        $server->runApp = function ($request, $response) use ($config, $webroot) {
             $yiiBeginAt = microtime(true);
-            $aliases = [
-                '@web' => '',
-                '@webroot' => $web,
-                '@webroot/assets' => $web.'/assets',
-                '@web/assets' => $web.'/assets'
-            ];
-            $config['aliases'] = isset($config['aliases']) ? array_merge($aliases, $config['aliases']) : $aliases;
-
             $requestComponent = [
                 'class' => Request::class,
                 'swooleRequest' => $request,
@@ -123,7 +115,7 @@ class SwooleController extends \yii\console\Controller
             ];
             $config['components']['response'] = isset($config['components']['response']) ? array_merge($config['components']['response'], $responseComponent) : $responseComponent;
 
-            $config['components']['session'] = isset($config['components']['session']) ? array_merge(['savePath' => $web . '/../runtime/session'], $config['components']['session'], ['class' => Session::class]) : ['class' => Session::class, 'savePath' => $web . '/../session'];
+            $config['components']['session'] = isset($config['components']['session']) ? array_merge(['savePath' => $webroot . '/../runtime/session'], $config['components']['session'], ['class' => Session::class]) : ['class' => Session::class, 'savePath' => $webroot . '/../session'];
 
             $config['components']['errorHandler'] = isset($config['components']['errorHandler']) ? array_merge($config['components']['errorHandler'], ['class' => ErrorHandler::class]) : ['class' => ErrorHandler::class];
 
@@ -146,7 +138,6 @@ class SwooleController extends \yii\console\Controller
                 // 这里将全局的logger替换成单个子app的logger 理论上其他的组件也需要做类似处理
                 Yii::setLogger(Yii::$app->log->logger);
                 Yii::$app->log->yiiBeginAt = $yiiBeginAt;
-                Yii::$app->setAliases($aliases);
                 try {
                     $application->state = Application::STATE_BEFORE_REQUEST;
                     $application->trigger(Application::EVENT_BEFORE_REQUEST);

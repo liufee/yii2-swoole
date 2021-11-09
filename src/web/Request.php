@@ -326,7 +326,8 @@ class Request extends \yii\web\Request
             return $this->_scriptFile;
         }
 
-        return Yii::getAlias("@web");
+        // 模拟$_SERVER['SCRIPT_FILENAME']变量
+        return $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . 'index.php';
     }
 
     public function setScriptFile($value)
